@@ -15,9 +15,11 @@ const Settings: React.FC = () => {
   });
   
   const [saved, setSaved] = useState(false);
+  const [apiUrl, setApiUrl] = useState('');
 
   useEffect(() => {
     setSettings(storage.settings.get());
+    setApiUrl(storage.getApiUrl());
   }, []);
 
   const handleChange = (field: keyof SchoolSettings, value: string) => {
@@ -26,6 +28,7 @@ const Settings: React.FC = () => {
 
   const handleSave = () => {
     storage.settings.save(settings);
+    storage.setApiUrl(apiUrl);
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
   };
@@ -136,6 +139,39 @@ const Settings: React.FC = () => {
       </div>
       
       {/* Database Tools */}
+      <div className="bg-blue-50 p-6 rounded-lg shadow border border-blue-200">
+          <h3 className="text-lg font-bold mb-2 text-blue-700">Koneksi Cloud (Google Sheets)</h3>
+          <p className="text-sm text-blue-600 mb-4">
+              Hubungkan aplikasi dengan Google Sheets menggunakan Google Apps Script untuk penyimpanan online.
+          </p>
+          
+          <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Google Apps Script Web App URL</label>
+              <input 
+                type="text" 
+                placeholder="https://script.google.com/macros/s/..."
+                value={apiUrl}
+                onChange={(e) => setApiUrl(e.target.value)}
+                className="w-full border border-gray-300 rounded-md p-2 text-sm font-mono"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                  Pastikan script dideploy sebagai "Web App" dengan akses "Anyone".
+              </p>
+          </div>
+
+          <button 
+            onClick={async () => {
+                const success = await storage.sync();
+                if (success) alert("Sinkronisasi Berhasil! Data telah dimuat dari Cloud.");
+                else alert("Gagal sinkronisasi. Periksa URL atau koneksi internet.");
+                window.location.reload();
+            }}
+            className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded shadow flex items-center gap-2"
+          >
+              ☁️ Sinkronisasi Sekarang
+          </button>
+      </div>
+
       <div className="bg-red-50 p-6 rounded-lg shadow border border-red-200">
           <h3 className="text-lg font-bold mb-2 text-red-700">Zona Bahaya</h3>
           <p className="text-sm text-red-600 mb-4">Aksi di bawah ini akan menghapus semua data yang tersimpan di browser ini dan mengembalikannya ke data awal (default).</p>
