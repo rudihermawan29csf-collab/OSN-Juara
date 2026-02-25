@@ -160,22 +160,24 @@ export const storage = {
   settings: {
     get: (): SchoolSettings => CACHE.Settings[0] || DEFAULT_SETTINGS,
     save: (settings: SchoolSettings) => {
-      // Ensure we have an ID for the settings row
-      const settingsWithId = { ...settings, id: settings.id || CACHE.Settings[0]?.id || generateId() };
-      
+      // Check if we already established an ID for settings
+      // If the ID matches our fixed ID, we assume it exists in the cloud (from previous save or sync)
+      const existingId = settings.id || CACHE.Settings[0]?.id;
+      const isExisting = existingId === 'SETTINGS_001';
+
       // Force a consistent ID for settings to ensure updates work on the single row
-      const fixedSettings = { ...settingsWithId, id: 'SETTINGS_001' }; 
+      const fixedSettings = { ...settings, id: 'SETTINGS_001' }; 
       
       CACHE.Settings = [fixedSettings];
       saveToLocalStorage();
 
-      // Try update first (most common case after init)
-      apiRequest('update', 'Settings', fixedSettings, 'SETTINGS_001').then(() => {
-          // Fire create as fallback if update might have failed due to empty sheet
-          // This is a "fire and forget" approach to ensure data persistence
-          // Ideally we would check result, but no-cors prevents reading response status
+      if (isExisting) {
+          // We have saved before or synced, so it should exist -> Update
+          apiRequest('update', 'Settings', fixedSettings, 'SETTINGS_001');
+      } else {
+          // First time saving (or recovered from reset/empty), assume not in cloud -> Create
           apiRequest('create', 'Settings', fixedSettings);
-      });
+      }
     }
   },
 
