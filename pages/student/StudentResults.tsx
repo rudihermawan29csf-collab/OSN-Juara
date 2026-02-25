@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { storage } from '../../services/storageService';
 import { Result, Exam, Packet, Question, QuestionType } from '../../types';
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+  BarChart, Bar, Cell
+} from 'recharts';
 
 interface StudentResultsProps {
     username: string;
@@ -136,22 +140,173 @@ const StudentResults: React.FC<StudentResultsProps> = ({ username }) => {
         return catMatch && scoreMatch;
     });
 
+    // --- STATISTICS & CHART DATA ---
+    const totalExams = results.length;
+    const averageScore = totalExams > 0 ? Math.round(results.reduce((acc, curr) => acc + Number(curr.score), 0) / totalExams) : 0;
+    const highestScore = totalExams > 0 ? Math.round(Math.max(...results.map(r => Number(r.score)))) : 0;
+    const lowestScore = totalExams > 0 ? Math.round(Math.min(...results.map(r => Number(r.score)))) : 0;
+
+    // Line Chart Data (Progress over time)
+    const lineChartData = [...results]
+        .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+        .map(r => ({
+            name: new Date(r.timestamp).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }),
+            fullDate: new Date(r.timestamp).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
+            title: r.examTitle,
+            score: Math.round(Number(r.score)),
+            category: r.category
+        }));
+
+    // Bar Chart Data (Average per category)
+    const categoryStats = ['OSN IPA', 'OSN IPS', 'OSN Matematika'].map(cat => {
+        const catResults = results.filter(r => r.category === cat);
+        const avg = catResults.length > 0 
+            ? Math.round(catResults.reduce((acc, curr) => acc + Number(curr.score), 0) / catResults.length) 
+            : 0;
+        return {
+            name: cat.replace('OSN ', ''),
+            score: avg,
+            count: catResults.length
+        };
+    });
+
     return (
-        <div className="space-y-6 animate-fadeIn">
+        <div className="space-y-8 animate-fadeIn pb-20">
+             {/* HEADER */}
              <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-white/20 pb-6">
                 <div className="flex items-center gap-4">
                     <div className="bg-white/40 p-4 rounded-2xl text-purple-600 shadow-lg backdrop-blur-sm border border-white/40">
                         <span className="text-4xl">📊</span>
                     </div>
                     <div>
-                        <h2 className="text-3xl font-extrabold text-gray-800 drop-shadow-sm">Hasil Ujian</h2>
+                        <h2 className="text-3xl font-extrabold text-gray-800 drop-shadow-sm">Analisis & Hasil</h2>
                         <p className="text-gray-600 text-sm mt-1 font-medium bg-white/30 inline-block px-3 py-1 rounded-full">
-                            Riwayat nilai dan analisis jawabanmu.
+                            Pantau progres belajar dan riwayat ujianmu.
                         </p>
                     </div>
                 </div>
+            </div>
 
-                {/* FILTERS */}
+            {/* STATISTICS CARDS */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center hover:shadow-md transition-shadow">
+                    <span className="text-3xl mb-2">📝</span>
+                    <h4 className="text-gray-500 text-xs font-bold uppercase tracking-wider">Total Ujian</h4>
+                    <p className="text-3xl font-extrabold text-gray-800 mt-1">{totalExams}</p>
+                </div>
+                <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center hover:shadow-md transition-shadow">
+                    <span className="text-3xl mb-2">📈</span>
+                    <h4 className="text-gray-500 text-xs font-bold uppercase tracking-wider">Rata-rata</h4>
+                    <p className={`text-3xl font-extrabold mt-1 ${averageScore >= 70 ? 'text-green-600' : 'text-orange-500'}`}>
+                        {averageScore}
+                    </p>
+                </div>
+                <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center hover:shadow-md transition-shadow">
+                    <span className="text-3xl mb-2">🏆</span>
+                    <h4 className="text-gray-500 text-xs font-bold uppercase tracking-wider">Tertinggi</h4>
+                    <p className="text-3xl font-extrabold text-blue-600 mt-1">{highestScore}</p>
+                </div>
+                <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center hover:shadow-md transition-shadow">
+                    <span className="text-3xl mb-2">📉</span>
+                    <h4 className="text-gray-500 text-xs font-bold uppercase tracking-wider">Terendah</h4>
+                    <p className="text-3xl font-extrabold text-red-500 mt-1">{lowestScore}</p>
+                </div>
+            </div>
+
+            {/* CHARTS SECTION */}
+            {results.length > 0 && (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Line Chart: Progress */}
+                    <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                        <h3 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">
+                            <span>📈</span> Grafik Progres Nilai
+                        </h3>
+                        <div className="h-64 w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <LineChart data={lineChartData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                                    <XAxis 
+                                        dataKey="name" 
+                                        tick={{ fontSize: 10, fill: '#9ca3af' }} 
+                                        axisLine={false}
+                                        tickLine={false}
+                                    />
+                                    <YAxis 
+                                        domain={[0, 100]} 
+                                        tick={{ fontSize: 10, fill: '#9ca3af' }} 
+                                        axisLine={false}
+                                        tickLine={false}
+                                    />
+                                    <Tooltip 
+                                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                                        labelStyle={{ fontWeight: 'bold', color: '#374151', marginBottom: '4px' }}
+                                        formatter={(value: any) => [`${value}`, 'Nilai']}
+                                        labelFormatter={(label, payload) => {
+                                            if (payload && payload.length > 0) {
+                                                const data = payload[0].payload;
+                                                return `${data.fullDate} - ${data.title}`;
+                                            }
+                                            return label;
+                                        }}
+                                    />
+                                    <Line 
+                                        type="monotone" 
+                                        dataKey="score" 
+                                        stroke="#8b5cf6" 
+                                        strokeWidth={3} 
+                                        dot={{ r: 4, fill: '#8b5cf6', strokeWidth: 2, stroke: '#fff' }}
+                                        activeDot={{ r: 6, strokeWidth: 0 }}
+                                    />
+                                </LineChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+
+                    {/* Bar Chart: Category Performance */}
+                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                        <h3 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">
+                            <span>📊</span> Rata-rata Mapel
+                        </h3>
+                        <div className="h-64 w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={categoryStats} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                                    <XAxis 
+                                        dataKey="name" 
+                                        tick={{ fontSize: 10, fill: '#9ca3af' }} 
+                                        axisLine={false}
+                                        tickLine={false}
+                                    />
+                                    <YAxis 
+                                        domain={[0, 100]} 
+                                        tick={{ fontSize: 10, fill: '#9ca3af' }} 
+                                        axisLine={false}
+                                        tickLine={false}
+                                    />
+                                    <Tooltip 
+                                        cursor={{ fill: '#f9fafb' }}
+                                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                                        formatter={(value: any) => [`${value}`, 'Rata-rata']}
+                                    />
+                                    <Bar dataKey="score" radius={[6, 6, 0, 0]} barSize={40}>
+                                        {categoryStats.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={
+                                                entry.name === 'IPA' ? '#16a34a' : 
+                                                entry.name === 'IPS' ? '#ea580c' : 
+                                                '#2563eb'
+                                            } />
+                                        ))}
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* FILTERS & LIST HEADER */}
+            <div className="flex flex-col md:flex-row justify-between items-center gap-4 pt-4">
+                <h3 className="text-xl font-bold text-gray-800">Riwayat Ujian</h3>
                 <div className="flex flex-wrap gap-2">
                     <select 
                         value={filterCategory}
