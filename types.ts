@@ -13,6 +13,7 @@ export enum QuestionType {
 }
 
 export interface SchoolSettings {
+  id?: string;
   schoolName: string;
   loginTitle: string; 
   academicYear: string; 

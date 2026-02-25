@@ -160,12 +160,25 @@ export const storage = {
   settings: {
     get: (): SchoolSettings => CACHE.Settings[0] || DEFAULT_SETTINGS,
     save: (settings: SchoolSettings) => {
-      CACHE.Settings = [settings];
+      // Ensure we have an ID for the settings row
+      const settingsWithId = { ...settings, id: settings.id || CACHE.Settings[0]?.id || generateId() };
+      
+      // Force a consistent ID for settings to ensure updates work on the single row
+      const fixedSettings = { ...settingsWithId, id: 'SETTINGS_001' }; 
+      
+      CACHE.Settings = [fixedSettings];
       saveToLocalStorage();
-      // Settings usually single row, update logic might need ID or just append/overwrite
-      // For simplicity, we might not sync settings perfectly or treat it as update row 1
+
+      // Try update first (most common case after init)
+      apiRequest('update', 'Settings', fixedSettings, 'SETTINGS_001').then(() => {
+          // Fire create as fallback if update might have failed due to empty sheet
+          // This is a "fire and forget" approach to ensure data persistence
+          // Ideally we would check result, but no-cors prevents reading response status
+          apiRequest('create', 'Settings', fixedSettings);
+      });
     }
   },
+
   students: {
     getAll: () => CACHE.Students,
     add: (item: Student) => {
