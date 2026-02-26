@@ -1,20 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { storage } from '../../services/storageService';
-import { Exam, Student, Result, UserRole } from '../../types';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-
-interface MonitorRow {
-    no: number;
-    studentId: string; // Added studentId
-    name: string;
-    nis: string;
-    nisn: string;
-    class: string;
-    examTitle: string;
-    score: number | string; // Score or 'Mengerjakan'
-    status: 'online' | 'offline' | 'done';
-    violationCount: number;
-}
+import { Student, Material, UserRole } from '../../types';
 
 interface MonitoringProps {
     userRole: UserRole | null;
@@ -22,362 +8,178 @@ interface MonitoringProps {
 }
 
 const Monitoring: React.FC<MonitoringProps> = ({ userRole, username }) => {
-    const [activeExams, setActiveExams] = useState<Exam[]>([]);
-    const [selectedExamId, setSelectedExamId] = useState<string>('');
-    const [filterClass, setFilterClass] = useState<string>('');
-    const [filterStatus, setFilterStatus] = useState<string>('all'); // Filter Status State
-    const [availableClasses, setAvailableClasses] = useState<string[]>([]);
-    
-    // Data Table
-    const [rows, setRows] = useState<MonitorRow[]>([]);
-    
-    // Student Detail Modal
+    const [students, setStudents] = useState<Student[]>([]);
+    const [materials, setMaterials] = useState<Material[]>([]);
+    const [filterClass, setFilterClass] = useState('All');
     const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
-    const [studentHistory, setStudentHistory] = useState<any[]>([]);
 
-    // Determine teacher category
+    useEffect(() => {
+        setStudents(storage.students.getAll());
+        setMaterials(storage.materials.getAll());
+    }, []);
+
+    // Determine teacher category based on login name
     const teacherCategory = userRole === UserRole.TEACHER 
-      ? (username.includes('OSN IPA') ? 'OSN IPA' : 
-         username.includes('OSN IPS') ? 'OSN IPS' : 
-         username.includes('OSN Matematika') ? 'OSN Matematika' : null)
-      : null;
+        ? (username.includes('OSN IPA') ? 'OSN IPA' : 
+           username.includes('OSN IPS') ? 'OSN IPS' : 
+           username.includes('OSN Matematika') ? 'OSN Matematika' : null)
+        : null;
 
-    const [filterCategory, setFilterCategory] = useState<string>('All');
-
-    // Auto-refresh simulation
-    useEffect(() => {
-        const interval = setInterval(() => {
-             refreshData();
-        }, 5000);
-        return () => clearInterval(interval);
-    }, [selectedExamId, filterClass, activeExams, filterStatus]); // Added filterStatus dependency
-
-    useEffect(() => {
-        let exams = storage.exams.getAll(); 
+    const filteredStudents = students.filter(s => {
+        if (filterClass !== 'All' && s.class !== filterClass) return false;
         
-        // Filter based on teacher category
-        if (userRole === UserRole.TEACHER && teacherCategory) {
-             exams = exams.filter(e => e.category === teacherCategory);
-        } else if (userRole === UserRole.ADMIN && filterCategory !== 'All') {
-             exams = exams.filter(e => e.category === filterCategory);
+        if (teacherCategory) {
+            // Only show students who have this subject
+            return s.osnSubjects && s.osnSubjects.includes(teacherCategory);
         }
+        return true;
+    });
 
-        setActiveExams(exams);
-        // Reset selected exam if the current one is not in the filtered list
-        if (exams.length > 0) {
-            if (!selectedExamId || !exams.find(e => e.id === selectedExamId)) {
-                setSelectedExamId(exams[0].id);
-            }
-        } else {
-            setSelectedExamId('');
+    const uniqueClasses = Array.from(new Set(students.map(s => s.class))).sort();
+
+    const getReadCount = (student: Student) => {
+        if (!student.readMaterials) return 0;
+        if (teacherCategory) {
+            // Count only materials of this category
+            const studentMaterials = student.readMaterials.map(id => materials.find(m => m.id === id)).filter(Boolean) as Material[];
+            return studentMaterials.filter(m => m.category === teacherCategory).length;
         }
-    }, [userRole, username, teacherCategory, filterCategory]);
-
-    const refreshData = () => {
-        // If "All Exams" is selected (empty string or specific value), we aggregate
-        let targetExams = activeExams;
-        if (selectedExamId && selectedExamId !== 'all') {
-            targetExams = activeExams.filter(e => e.id === selectedExamId);
-        }
-
-        if (targetExams.length === 0) {
-            setRows([]);
-            return;
-        }
-
-        let allRows: MonitorRow[] = [];
-
-        // Iterate through each exam to build the rows
-        targetExams.forEach(exam => {
-            let enrolledStudents = storage.students.getAll();
-            
-            // Filter by Class if selected
-            if (filterClass) {
-                enrolledStudents = enrolledStudents.filter(s => s.class === filterClass);
-            }
-
-            // Get results for this exam
-            const examResults = storage.results.getAll().filter(r => r.examId === exam.id);
-
-            const examRows = enrolledStudents.map(s => {
-                // Check if student has a result for this exam
-                const studentResult = examResults.find(r => r.studentName === s.name);
-                
-                // Only include if they have a result OR if we are viewing a specific exam (to show who hasn't started)
-                // If viewing "All Exams", showing every student for every exam might be too much.
-                // Let's only show students who have ATTEMPTED or are ONLINE if viewing "All".
-                // But user said "memantau langsung dari beberapa ujian yang diikuiti".
-                // If we filter by class, it's fine.
-                
-                let status: MonitorRow['status'] = 'offline';
-                let score: number | string = '-';
-                let violations = 0;
-
-                if (studentResult) {
-                    status = 'done';
-                    score = Math.round(studentResult.score);
-                    violations = studentResult.violationCount;
-                } else {
-                     // Simulation logic
-                     const isLive = Math.random() > 0.95; // Lower probability for simulation
-                     if (isLive && selectedExamId !== 'all') {
-                         status = 'online';
-                         score = 'Sedang Mengerjakan';
-                         violations = Math.random() > 0.95 ? Math.floor(Math.random() * 3) + 1 : 0;
-                     }
-                }
-
-                // If viewing ALL exams, skip students who haven't started to reduce noise, unless filtered by class
-                if (selectedExamId === 'all' && status === 'offline' && !filterClass) return null;
-
-                return {
-                    no: 0,
-                    studentId: s.id,
-                    name: s.name,
-                    nis: s.nis,
-                    nisn: s.nisn,
-                    class: s.class,
-                    examTitle: exam.title,
-                    score: score,
-                    status: status,
-                    violationCount: violations
-                };
-            }).filter((r): r is MonitorRow => r !== null);
-            
-            allRows = [...allRows, ...examRows];
-        });
-
-        // Filter based on Status
-        if (filterStatus === 'done') {
-            allRows = allRows.filter(r => r.status === 'done');
-        } else if (filterStatus === 'not_done') {
-            allRows = allRows.filter(r => r.status !== 'done');
-        }
-
-        // Re-assign Numbering
-        const finalRows = allRows.map((r, idx) => ({ ...r, no: idx + 1 }));
-        setRows(finalRows);
+        return student.readMaterials.length;
     };
 
-    // Initial load when selection changes
-    useEffect(() => {
-        refreshData();
-    }, [selectedExamId, filterClass, filterStatus]);
-
-    const handleStudentClick = (studentName: string) => {
-        const student = storage.students.getAll().find(s => s.name === studentName);
-        if (student) {
-            // Get all results for this student
-            const results = storage.results.getAll().filter(r => r.studentName === studentName);
-            
-            // Map to history format for chart
-            // Sort by timestamp if available, or just by exam title
-            const history = results.map(r => ({
-                examTitle: r.examTitle,
-                score: r.score,
-                date: new Date(r.timestamp).toLocaleDateString()
-            })).sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
-            setStudentHistory(history);
-            setSelectedStudent(student);
+    const getTotalMaterialsCount = () => {
+        if (teacherCategory) {
+            return materials.filter(m => m.category === teacherCategory).length;
         }
+        return materials.length;
+    };
+
+    const getReadMaterials = (student: Student) => {
+        if (!student.readMaterials) return [];
+        let read = student.readMaterials.map(id => materials.find(m => m.id === id)).filter(Boolean) as Material[];
+        if (teacherCategory) {
+            read = read.filter(m => m.category === teacherCategory);
+        }
+        return read;
     };
 
     return (
         <div className="space-y-6">
-            <div className="bg-white p-4 rounded shadow flex flex-col md:flex-row justify-between items-center gap-4 border-l-4 border-blue-500">
-                <div className="flex flex-col gap-1 w-full md:w-auto">
-                    <h2 className="text-xl font-bold whitespace-nowrap">Monitoring Ujian</h2>
-                    {teacherCategory && <span className="text-xs text-gray-500">Menampilkan ujian kategori: <b>{teacherCategory}</b></span>}
+            <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                <div>
+                    <h2 className="text-xl font-bold text-gray-800">Monitoring Literasi Siswa</h2>
+                    <p className="text-sm text-gray-500">Pantau aktivitas siswa dalam membaca materi</p>
                 </div>
-                
-                <div className="flex flex-wrap items-center gap-3 w-full md:w-auto justify-end">
-                     {/* Admin Category Filter */}
-                     {userRole === UserRole.ADMIN && (
-                         <select 
-                            className="border p-2 rounded text-sm font-bold bg-white"
-                            value={filterCategory}
-                            onChange={e => setFilterCategory(e.target.value)}
-                        >
-                            <option value="All">Semua Kategori</option>
-                            <option value="OSN IPA">OSN IPA</option>
-                            <option value="OSN IPS">OSN IPS</option>
-                            <option value="OSN Matematika">OSN Matematika</option>
-                        </select>
-                     )}
-
-                     {/* Exam Selector */}
-                     <select 
-                        className="border p-2 rounded w-full md:w-56 text-sm"
-                        value={selectedExamId}
-                        onChange={e => { setSelectedExamId(e.target.value); setFilterClass(''); }}
+                <div className="flex gap-4">
+                    <select 
+                        className="border p-2 rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none"
+                        value={filterClass}
+                        onChange={e => setFilterClass(e.target.value)}
                     >
-                        <option value="all">Semua Ujian Aktif</option>
-                        {activeExams.length === 0 && <option disabled>Tidak ada ujian aktif</option>}
-                        {activeExams.map(e => <option key={e.id} value={e.id}>{e.title}</option>)}
+                        <option value="All">Semua Kelas</option>
+                        {uniqueClasses.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
-
-                    {/* Class Filter */}
-                    <div className="flex items-center gap-2">
-                        <select 
-                            className="border p-2 rounded text-sm"
-                            value={filterClass}
-                            onChange={e => setFilterClass(e.target.value)}
-                        >
-                            <option value="">Semua Kelas</option>
-                            {availableClasses.map(c => <option key={c} value={c}>{c}</option>)}
-                        </select>
-                    </div>
-
-                    {/* Status Filter */}
-                    <div className="flex items-center gap-2">
-                        <select 
-                            className={`border p-2 rounded text-sm font-bold ${
-                                filterStatus === 'done' ? 'bg-green-50 text-green-700 border-green-300' :
-                                filterStatus === 'not_done' ? 'bg-red-50 text-red-700 border-red-300' :
-                                'bg-white text-gray-700'
-                            }`}
-                            value={filterStatus}
-                            onChange={e => setFilterStatus(e.target.value)}
-                        >
-                            <option value="all">Semua Status</option>
-                            <option value="done">✅ Sudah Mengerjakan</option>
-                            <option value="not_done">⏳ Belum Mengerjakan</option>
-                        </select>
-                    </div>
                 </div>
             </div>
 
-            <div className="bg-white rounded-lg shadow overflow-hidden">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left">
-                        <thead className="bg-gray-800 text-white text-sm uppercase">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <table className="w-full text-left">
+                    <thead className="bg-gray-50 border-b border-gray-200">
+                        <tr>
+                            <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Nama Siswa</th>
+                            <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Kelas</th>
+                            <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">Progress Materi</th>
+                            <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                        {filteredStudents.length === 0 ? (
                             <tr>
-                                <th className="p-3 w-12 text-center">No</th>
-                                <th className="p-3">Nama Siswa</th>
-                                <th className="p-3">NIS</th>
-                                <th className="p-3">NISN</th>
-                                <th className="p-3 w-20 text-center">Kelas</th>
-                                <th className="p-3">Ujian</th>
-                                <th className="p-3">Status Pengerjaan</th>
-                                <th className="p-3 text-center">Skor</th>
-                                <th className="p-3 text-center">Indikasi Kecurangan</th>
+                                <td colSpan={4} className="p-8 text-center text-gray-400 italic">Tidak ada data siswa.</td>
                             </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-200">
-                            {rows.length === 0 ? (
-                                <tr><td colSpan={9} className="p-6 text-center text-gray-500">Tidak ada data siswa sesuai filter.</td></tr>
-                            ) : rows.map((row) => (
-                                <tr key={row.no} className="hover:bg-gray-50">
-                                    <td className="p-3 text-center font-bold text-gray-500">{row.no}</td>
-                                    <td className="p-3 font-medium">
+                        ) : filteredStudents.map(student => {
+                            const readCount = getReadCount(student);
+                            const totalCount = getTotalMaterialsCount();
+                            const percentage = totalCount > 0 ? Math.round((readCount / totalCount) * 100) : 0;
+                            
+                            return (
+                                <tr key={student.id} className="hover:bg-gray-50 transition-colors">
+                                    <td className="p-4">
+                                        <div className="font-bold text-gray-800">{student.name}</div>
+                                        <div className="text-xs text-gray-400">{student.nis}</div>
+                                    </td>
+                                    <td className="p-4 text-sm text-gray-600">{student.class}</td>
+                                    <td className="p-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                                                <div 
+                                                    className={`h-full rounded-full ${percentage === 100 ? 'bg-green-500' : 'bg-blue-500'}`} 
+                                                    style={{ width: `${percentage}%` }}
+                                                ></div>
+                                            </div>
+                                            <span className="text-xs font-bold text-gray-600 w-12 text-right">{readCount}/{totalCount}</span>
+                                        </div>
+                                    </td>
+                                    <td className="p-4 text-right">
                                         <button 
-                                            onClick={() => handleStudentClick(row.name)}
-                                            className="text-blue-600 hover:underline font-bold text-left"
+                                            onClick={() => setSelectedStudent(student)}
+                                            className="text-blue-600 hover:text-blue-800 text-sm font-bold bg-blue-50 hover:bg-blue-100 px-3 py-1 rounded transition-colors"
                                         >
-                                            {row.name}
+                                            Detail
                                         </button>
                                     </td>
-                                    <td className="p-3 text-gray-500">{row.nis}</td>
-                                    <td className="p-3 text-gray-500">{row.nisn}</td>
-                                    <td className="p-3 text-center">
-                                        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-bold">{row.class}</span>
-                                    </td>
-                                    <td className="p-3 text-sm text-gray-700">{row.examTitle}</td>
-                                    <td className="p-3">
-                                        {row.status === 'done' && <span className="text-green-600 font-bold">✅ Selesai</span>}
-                                        {row.status === 'online' && <span className="text-blue-600 font-bold animate-pulse">🔵 Sedang Aktif</span>}
-                                        {row.status === 'offline' && <span className="text-gray-400">⚫ Belum Login/Offline</span>}
-                                    </td>
-                                    <td className="p-3 text-center font-bold text-lg">
-                                        {typeof row.score === 'number' ? row.score : '-'}
-                                    </td>
-                                    <td className="p-3 text-center">
-                                        {row.violationCount === 0 ? (
-                                            <span className="text-green-500 text-xs">Aman</span>
-                                        ) : (
-                                            <div className="flex flex-col items-center">
-                                                <span className={`px-3 py-1 rounded-full text-white font-bold text-xs ${
-                                                    row.violationCount >= 3 ? 'bg-red-600' : 'bg-orange-500'
-                                                }`}>
-                                                    {row.violationCount}x Pindah Tab
-                                                </span>
-                                                {row.violationCount >= 3 && <span className="text-[10px] text-red-600 font-bold mt-1">DISQUALIFIED</span>}
-                                            </div>
-                                        )}
-                                    </td>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
+                            );
+                        })}
+                    </tbody>
+                </table>
             </div>
 
-            {/* Student Detail Modal */}
             {selectedStudent && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedStudent(null)}>
-                    <div className="bg-white rounded-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
-                        <div className="p-6 border-b flex justify-between items-center bg-gray-50 rounded-t-xl">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+                        <div className="p-6 border-b flex justify-between items-center bg-gray-50">
                             <div>
-                                <h3 className="text-2xl font-bold text-gray-800">{selectedStudent.name}</h3>
-                                <div className="flex gap-4 text-sm text-gray-500 mt-1">
-                                    <span>NIS: {selectedStudent.nis}</span>
-                                    <span>Kelas: {selectedStudent.class}</span>
-                                </div>
+                                <h3 className="font-bold text-lg text-gray-800">Detail Literasi: {selectedStudent.name}</h3>
+                                <p className="text-sm text-gray-500">{selectedStudent.class} • {selectedStudent.nis}</p>
                             </div>
-                            <button onClick={() => setSelectedStudent(null)} className="text-gray-400 hover:text-gray-800 text-2xl font-bold">✕</button>
+                            <button onClick={() => setSelectedStudent(null)} className="text-gray-400 hover:text-gray-600 font-bold text-xl">&times;</button>
                         </div>
-                        
-                        <div className="p-6 space-y-8">
-                            {/* Chart Section */}
-                            <div className="h-80 w-full bg-white p-4 border rounded-xl shadow-sm">
-                                <h4 className="font-bold text-gray-700 mb-4">Grafik Perkembangan Nilai</h4>
-                                {studentHistory.length > 0 ? (
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <LineChart data={studentHistory}>
-                                            <CartesianGrid strokeDasharray="3 3" />
-                                            <XAxis dataKey="examTitle" tick={{fontSize: 10}} interval={0} angle={-15} textAnchor="end" height={60} />
-                                            <YAxis domain={[0, 100]} />
-                                            <Tooltip />
-                                            <Legend />
-                                            <Line type="monotone" dataKey="score" stroke="#2563eb" strokeWidth={3} activeDot={{ r: 8 }} name="Nilai Ujian" />
-                                        </LineChart>
-                                    </ResponsiveContainer>
-                                ) : (
-                                    <div className="h-full flex items-center justify-center text-gray-400">Belum ada data nilai ujian.</div>
-                                )}
-                            </div>
-
-                            {/* History Table */}
-                            <div>
-                                <h4 className="font-bold text-gray-700 mb-4">Riwayat Ujian</h4>
-                                <div className="overflow-hidden border rounded-lg">
-                                    <table className="w-full text-left text-sm">
-                                        <thead className="bg-gray-100">
-                                            <tr>
-                                                <th className="p-3 border-b">Tanggal</th>
-                                                <th className="p-3 border-b">Nama Ujian</th>
-                                                <th className="p-3 border-b text-center">Nilai</th>
-                                                <th className="p-3 border-b text-center">Status</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y">
-                                            {studentHistory.length === 0 ? (
-                                                <tr><td colSpan={4} className="p-4 text-center text-gray-500">Belum ada riwayat ujian.</td></tr>
-                                            ) : studentHistory.map((h, idx) => (
-                                                <tr key={idx} className="hover:bg-gray-50">
-                                                    <td className="p-3">{h.date}</td>
-                                                    <td className="p-3 font-medium">{h.examTitle}</td>
-                                                    <td className="p-3 text-center font-bold text-blue-600">{h.score}</td>
-                                                    <td className="p-3 text-center">
-                                                        <span className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold">Selesai</span>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
+                        <div className="p-6 max-h-[60vh] overflow-y-auto">
+                            <h4 className="font-bold text-sm text-gray-500 uppercase mb-4">Materi yang sudah dibaca ({getReadCount(selectedStudent)})</h4>
+                            {getReadMaterials(selectedStudent).length === 0 ? (
+                                <div className="text-center py-8 text-gray-400 bg-gray-50 rounded-lg border border-dashed">
+                                    Belum ada materi yang dibaca.
                                 </div>
-                            </div>
+                            ) : (
+                                <div className="space-y-3">
+                                    {getReadMaterials(selectedStudent).map(m => (
+                                        <div key={m.id} className="flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors">
+                                            <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center text-xl">
+                                                {m.type === 'image' ? '🖼️' : m.type === 'link' ? '🔗' : '📺'}
+                                            </div>
+                                            <div>
+                                                <div className="font-bold text-gray-800">{m.title}</div>
+                                                <div className="flex gap-2 mt-1">
+                                                    <span className={`text-[10px] px-2 py-0.5 rounded text-white font-bold uppercase ${
+                                                        m.category === 'OSN IPA' ? 'bg-green-600' : 
+                                                        m.category === 'OSN IPS' ? 'bg-orange-500' : 'bg-blue-600'
+                                                    }`}>
+                                                        {m.category}
+                                                    </span>
+                                                    <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded">
+                                                        {new Date(m.createdAt).toLocaleDateString()}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div className="ml-auto text-green-500 font-bold">✓</div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                        <div className="p-4 border-t bg-gray-50 text-right">
+                            <button onClick={() => setSelectedStudent(null)} className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded font-bold">Tutup</button>
                         </div>
                     </div>
                 </div>

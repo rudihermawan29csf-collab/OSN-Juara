@@ -32,6 +32,8 @@ export interface Student {
   nis: string;
   nisn: string;
   osnSubjects: string[]; // ['OSN IPA', 'OSN IPS', 'OSN Matematika']
+  readMaterials?: string[]; // Array of Material IDs that have been read/opened
+  completedSchedules?: string[]; // Array of Exam/Schedule IDs that have been completed
 }
 
 export interface Question {
@@ -62,7 +64,8 @@ export interface Exam {
   id: string;
   title: string;
   category: string; // OSN IPA, OSN IPS, OSN Matematika
-  packetId: string;
+  packetId?: string; // Optional if only material
+  materialId?: string; // Optional if only exam
   scheduledStart: string; 
   scheduledEnd: string; 
   durationMinutes: number;
@@ -70,6 +73,8 @@ export interface Exam {
   questions: string; 
   isActive: boolean;
   allowRetry: boolean; // Bisa diulang atau tidak
+  minScore?: number; // Minimum score to pass (default 70)
+  order?: number; // Sequence order
 }
 
 export interface Result {

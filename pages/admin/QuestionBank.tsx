@@ -168,9 +168,9 @@ const QuestionBank: React.FC<QuestionBankProps> = ({ userRole, username }) => {
                         if (typeRaw === 'BS') type = QuestionType.TRUE_FALSE;
                         if (typeRaw === 'PGK') type = QuestionType.COMPLEX_MULTIPLE_CHOICE;
                         
-                        const optionsRaw = row["Opsi Jawaban (Pisahkan dengan titik koma ;)"] || "";
+                        const optionsRaw = row["Opsi Jawaban (Pisahkan dengan titik koma ;)"] || row["Opsi Jawaban"] || row["Opsi"] || "";
                         const optionsArray = optionsRaw.toString().split(';').map((s: string) => s.trim()).filter((s: string) => s !== "");
-                        const keysRaw = (row["Kunci Jawaban (Angka 0=A, 1=B, dst)"] || "").toString();
+                        const keysRaw = (row["Kunci Jawaban (Angka 0=A, 1=B, dst)"] || row["Kunci Jawaban"] || row["Kunci"] || "").toString();
 
                         let finalOptions = '[]';
                         let matchingPairs = '[]';
@@ -320,11 +320,15 @@ const QuestionBank: React.FC<QuestionBankProps> = ({ userRole, username }) => {
               try {
                   const opts = JSON.parse(existing.options || '["Benar", "Salah"]');
                   setBsOptions(opts);
+              } catch (e) {
+                  setBsOptions(["Benar", "Salah"]);
+              }
+              
+              try {
                   const pairs = JSON.parse(existing.matchingPairs || '[]');
                   if (pairs.length > 0) setBsItems(pairs);
                   else setBsItems([{ left: "", right: "a" }]);
               } catch (e) {
-                  setBsOptions(["Benar", "Salah"]);
                   setBsItems([{ left: "", right: "a" }]);
               }
           }
@@ -375,9 +379,10 @@ const QuestionBank: React.FC<QuestionBankProps> = ({ userRole, username }) => {
       } as Question;
       
       if (questionForm.id) {
-           storage.questions.delete(questionForm.id); // Remove old to update
+           storage.questions.update(questionForm.id, qToSave);
+      } else {
+           storage.questions.add(qToSave);
       }
-      storage.questions.add(qToSave);
       
       // AUTO UPDATE PACKET METADATA (Total & Types)
       if (selectedPacketId) {
@@ -463,7 +468,20 @@ const QuestionBank: React.FC<QuestionBankProps> = ({ userRole, username }) => {
           );
       }
       
-      const opts = JSON.parse(questionForm.options || '[]');
+      let opts: string[] = [];
+      try {
+          opts = JSON.parse(questionForm.options || '[]');
+      } catch (e) {
+          opts = ["", "", "", ""];
+      }
+
+      let indices: number[] = [];
+      try {
+          indices = JSON.parse(questionForm.correctAnswerIndices || '[]');
+      } catch (e) {
+          indices = [];
+      }
+
       return (
           <div className="space-y-2 mt-2">
               {opts.map((opt: string, idx: number) => (
@@ -471,9 +489,8 @@ const QuestionBank: React.FC<QuestionBankProps> = ({ userRole, username }) => {
                       {questionForm.type === QuestionType.MULTIPLE_CHOICE ? (
                           <input type="radio" name="pg" checked={questionForm.correctAnswerIndex === idx} onChange={() => setQuestionForm({...questionForm, correctAnswerIndex: idx})} />
                       ) : (
-                          <input type="checkbox" checked={JSON.parse(questionForm.correctAnswerIndices || '[]').includes(idx)} onChange={() => {
-                              const cur = JSON.parse(questionForm.correctAnswerIndices || '[]');
-                              const next = cur.includes(idx) ? cur.filter((i:number) => i!==idx) : [...cur, idx];
+                          <input type="checkbox" checked={indices.includes(idx)} onChange={() => {
+                              const next = indices.includes(idx) ? indices.filter((i:number) => i!==idx) : [...indices, idx];
                               setQuestionForm({...questionForm, correctAnswerIndices: JSON.stringify(next)});
                           }} />
                       )}
@@ -491,8 +508,24 @@ const QuestionBank: React.FC<QuestionBankProps> = ({ userRole, username }) => {
   const renderPreviewOptions = (q: Question) => {
     try {
         if (q.type === QuestionType.TRUE_FALSE) {
-             const opts = JSON.parse(q.options || '["Benar","Salah"]');
-             const pairs: BSItem[] = JSON.parse(q.matchingPairs || '[]');
+             let opts = ["Benar", "Salah"];
+             try {
+                 if (typeof q.options === 'string') {
+                    opts = JSON.parse(q.options || '["Benar","Salah"]');
+                 }
+             } catch (e) {
+                 console.warn("Failed to parse BS options", e);
+             }
+
+             let pairs: BSItem[] = [];
+             try {
+                 if (typeof q.matchingPairs === 'string') {
+                    pairs = JSON.parse(q.matchingPairs || '[]');
+                 }
+             } catch (e) {
+                 console.warn("Failed to parse BS pairs", e);
+             }
+
              return (
                  <table className="w-full text-left text-sm border mt-2">
                      <thead>
@@ -514,8 +547,30 @@ const QuestionBank: React.FC<QuestionBankProps> = ({ userRole, username }) => {
                  </table>
              );
         }
-        const opts = JSON.parse(q.options);
-        const correctIndices = JSON.parse(q.correctAnswerIndices || '[]');
+        
+        let opts: string[] = [];
+        try {
+            if (typeof q.options === 'string') {
+                opts = JSON.parse(q.options || '[]');
+            } else if (Array.isArray(q.options)) {
+                opts = q.options;
+            }
+        } catch (e) {
+            console.warn("Failed to parse options", e);
+            opts = [];
+        }
+
+        let correctIndices: number[] = [];
+        try {
+            if (typeof q.correctAnswerIndices === 'string') {
+                correctIndices = JSON.parse(q.correctAnswerIndices || '[]');
+            } else if (Array.isArray(q.correctAnswerIndices)) {
+                correctIndices = q.correctAnswerIndices;
+            }
+        } catch (e) {
+            console.warn("Failed to parse correct indices", e);
+        }
+
         return (
             <div className="space-y-2 mt-2">
                 {opts.map((opt: string, idx: number) => (
@@ -530,7 +585,8 @@ const QuestionBank: React.FC<QuestionBankProps> = ({ userRole, username }) => {
             </div>
         );
     } catch (e) {
-        return <div className="text-red-500">Error rendering options</div>;
+        console.error("Render preview error", e);
+        return <div className="text-red-500">Error rendering options: {(e as Error).message}</div>;
     }
   };
 

@@ -79,7 +79,7 @@ const Layout: React.FC<LayoutProps> = ({ children, role, user, onLogout, current
             )}
         </button>
 
-        <nav className="flex-1 py-6 px-3 space-y-1 overflow-y-auto">
+        <nav className="flex-1 py-6 px-3 overflow-y-auto flex flex-col gap-2">
           {getMenuItems().map((item) => (
             <button
               key={item.id}

@@ -1,15 +1,47 @@
 import React, { useState, useEffect } from 'react';
 import { storage } from '../../services/storageService';
-import { Material } from '../../types';
+import { Material, Student } from '../../types';
 
-const StudentMaterials: React.FC = () => {
+interface StudentMaterialsProps {
+    username?: string;
+}
+
+const StudentMaterials: React.FC<StudentMaterialsProps> = ({ username }) => {
     const [materials, setMaterials] = useState<Material[]>([]);
     const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(null);
     const [filter, setFilter] = useState('All');
+    const [currentStudent, setCurrentStudent] = useState<Student | null>(null);
 
     useEffect(() => {
         setMaterials(storage.materials.getAll());
-    }, []);
+        if (username) {
+            const students = storage.students.getAll();
+            // Try to find by name (assuming username is name)
+            const student = students.find(s => s.name === username);
+            if (student) {
+                setCurrentStudent(student);
+            }
+        }
+    }, [username]);
+
+    const handleOpenMaterial = (material: Material) => {
+        setSelectedMaterial(material);
+        
+        // Mark as read if student is logged in
+        if (currentStudent) {
+            const readList = currentStudent.readMaterials || [];
+            if (!readList.includes(material.id)) {
+                const updatedReadList = [...readList, material.id];
+                const updatedStudent = { ...currentStudent, readMaterials: updatedReadList };
+                
+                // Update local state
+                setCurrentStudent(updatedStudent);
+                
+                // Update storage (and sync to cloud)
+                storage.students.update(currentStudent.id, { readMaterials: updatedReadList });
+            }
+        }
+    };
 
     const filteredMaterials = filter === 'All' 
         ? materials 
@@ -105,21 +137,28 @@ const StudentMaterials: React.FC = () => {
                         Belum ada materi tersedia untuk kategori ini.
                     </div>
                 )}
-                {filteredMaterials.map(m => (
+                {filteredMaterials.map(m => {
+                    const isRead = currentStudent?.readMaterials?.includes(m.id);
+                    return (
                     <div 
                         key={m.id} 
-                        onClick={() => setSelectedMaterial(m)}
-                        className="bg-white rounded-xl shadow-sm border overflow-hidden cursor-pointer hover:shadow-md transition-all group flex flex-col h-full"
+                        onClick={() => handleOpenMaterial(m)}
+                        className={`bg-white rounded-xl shadow-sm border overflow-hidden cursor-pointer hover:shadow-md transition-all group flex flex-col h-full ${isRead ? 'ring-2 ring-green-500' : ''}`}
                     >
                         <div className="aspect-video bg-gray-100 relative overflow-hidden">
                              {renderThumbnail(m)}
                              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors z-10 flex items-center justify-center">
                                  <span className="bg-white/90 text-gray-800 px-3 py-1 rounded-full text-sm font-bold opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 transition-all">
-                                     Buka Materi
+                                     {isRead ? 'Buka Lagi' : 'Buka Materi'}
                                  </span>
                              </div>
-                             <div className="absolute top-2 right-2">
-                                <span className={`text-[10px] px-2 py-1 rounded text-white font-bold uppercase shadow-sm ${
+                             <div className="absolute top-2 right-2 flex gap-1">
+                                {isRead && (
+                                    <span className="bg-green-500 text-white w-6 h-6 rounded-full flex items-center justify-center shadow-sm" title="Sudah Dibaca">
+                                        ✓
+                                    </span>
+                                )}
+                                <span className={`text-[10px] px-2 py-1 rounded text-white font-bold uppercase shadow-sm flex items-center ${
                                     m.category === 'OSN IPA' ? 'bg-green-600' : 
                                     m.category === 'OSN IPS' ? 'bg-orange-500' : 'bg-blue-600'
                                 }`}>
@@ -137,7 +176,8 @@ const StudentMaterials: React.FC = () => {
                             <p className="text-xs text-gray-400 mt-auto">{new Date(m.createdAt).toLocaleDateString()}</p>
                         </div>
                     </div>
-                ))}
+                    );
+                })}
             </div>
 
             {selectedMaterial && (

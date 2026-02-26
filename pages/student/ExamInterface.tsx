@@ -35,6 +35,28 @@ const ExamInterface: React.FC<ExamInterfaceProps> = ({ examId, username, onFinis
       return newArray;
   };
 
+  // Helper: Safe JSON Parse
+  const safeParse = (jsonString: string, fallback: any = []) => {
+      if (!jsonString) return fallback;
+      try {
+          let parsed = JSON.parse(jsonString);
+          
+          // Handle double-stringified JSON
+          if (typeof parsed === 'string') {
+              try {
+                  parsed = JSON.parse(parsed);
+              } catch (e) {
+                  // If second parse fails, keep original parsed string (though likely invalid for array usage)
+              }
+          }
+          
+          return parsed ?? fallback;
+      } catch (e) {
+          console.warn("JSON Parse Error:", e);
+          return fallback;
+      }
+  };
+
   useEffect(() => {
     const e = storage.exams.getAll().find(ex => ex.id === examId);
     if (e) {
@@ -42,67 +64,51 @@ const ExamInterface: React.FC<ExamInterfaceProps> = ({ examId, username, onFinis
       let rawQs = storage.questions.getByPacketId(e.packetId);
       
       // 1. ACAK URUTAN SOAL
-      // Kita clone deep agar tidak merusak urutan asli di storage
       let shuffledQs = shuffleArray(rawQs).map(q => ({...q}));
 
-      // 2. ACAK OPSI JAWABAN (Untuk PG dan PG Kompleks)
+      // 2. ACAK OPSI JAWABAN
       shuffledQs = shuffledQs.map(q => {
-          // Hanya acak jika PG atau PG Kompleks
           if (q.type === QuestionType.MULTIPLE_CHOICE) {
-              try {
-                  const originalOptions = JSON.parse(q.options || '[]');
-                  if(originalOptions.length > 0) {
-                      // Map opsi dengan index aslinya
-                      const optionsWithIndex: { text: string; originalIdx: number }[] = originalOptions.map((opt: string, idx: number) => ({
-                          text: opt,
-                          originalIdx: idx
-                      }));
-                      
-                      // Acak opsi
-                      const shuffledOptions = shuffleArray(optionsWithIndex);
-                      
-                      // Cari index baru dari jawaban yang benar
-                      // Jawaban benar adalah index di mana originalIdx == q.correctAnswerIndex
-                      const newCorrectIndex = shuffledOptions.findIndex(item => item.originalIdx === q.correctAnswerIndex);
-                      
-                      // Update question object
-                      return {
-                          ...q,
-                          options: JSON.stringify(shuffledOptions.map(item => item.text)),
-                          correctAnswerIndex: newCorrectIndex
-                      };
-                  }
-              } catch(err) { console.error("Error shuffling PG", err); }
+              const originalOptions = safeParse(q.options, []);
+              if(originalOptions.length > 0) {
+                  const optionsWithIndex = originalOptions.map((opt: string, idx: number) => ({
+                      text: opt,
+                      originalIdx: idx
+                  }));
+                  
+                  const shuffledOptions = shuffleArray(optionsWithIndex);
+                  const newCorrectIndex = shuffledOptions.findIndex(item => item.originalIdx === q.correctAnswerIndex);
+                  
+                  return {
+                      ...q,
+                      options: JSON.stringify(shuffledOptions.map(item => item.text)),
+                      correctAnswerIndex: newCorrectIndex
+                  };
+              }
           }
           else if (q.type === QuestionType.COMPLEX_MULTIPLE_CHOICE) {
-               try {
-                   const originalOptions = JSON.parse(q.options || '[]');
-                   const correctIndices = JSON.parse(q.correctAnswerIndices || '[]');
+               const originalOptions = safeParse(q.options, []);
+               const correctIndices = safeParse(q.correctAnswerIndices, []);
+               
+               if(originalOptions.length > 0) {
+                   const optionsWithIndex = originalOptions.map((opt: string, idx: number) => ({
+                       text: opt,
+                       originalIdx: idx
+                   }));
+
+                   const shuffledOptions = shuffleArray(optionsWithIndex);
+                   const newCorrectIndices = shuffledOptions
+                       .map((item, newIdx) => correctIndices.includes(item.originalIdx) ? newIdx : -1)
+                       .filter((idx): idx is number => idx !== -1);
                    
-                   if(originalOptions.length > 0) {
-                       const optionsWithIndex: { text: string; originalIdx: number }[] = originalOptions.map((opt: string, idx: number) => ({
-                           text: opt,
-                           originalIdx: idx
-                       }));
-
-                       const shuffledOptions = shuffleArray(optionsWithIndex);
-
-                       // Mapping index baru untuk kunci jawaban
-                       // Kita cari item yang originalIdx-nya ada di daftar kunci lama, lalu ambil index barunya
-                       const newCorrectIndices = shuffledOptions
-                           .map((item, newIdx) => correctIndices.includes(item.originalIdx) ? newIdx : -1)
-                           .filter((idx): idx is number => idx !== -1);
-                       
-                       return {
-                           ...q,
-                           options: JSON.stringify(shuffledOptions.map(item => item.text)),
-                           correctAnswerIndices: JSON.stringify(newCorrectIndices)
-                       };
-                   }
-               } catch(err) { console.error("Error shuffling PGK", err); }
+                   return {
+                       ...q,
+                       options: JSON.stringify(shuffledOptions.map(item => item.text)),
+                       correctAnswerIndices: JSON.stringify(newCorrectIndices)
+                   };
+               }
           }
-          
-          return q; // Return as is for Essay, Matching, True/False (usually fixed order)
+          return q; 
       });
 
       setQuestions(shuffledQs);
@@ -175,16 +181,14 @@ const ExamInterface: React.FC<ExamInterfaceProps> = ({ examId, username, onFinis
             if (studentAns === q.correctAnswerIndex) correctCount++;
         } 
         else if (q.type === QuestionType.TRUE_FALSE) {
-             try {
-                 const pairs = JSON.parse(q.matchingPairs || '[]');
-                 if (Array.isArray(studentAns) && studentAns.length === pairs.length) {
-                     const allCorrect = pairs.every((item: any, idx: number) => item.right === studentAns[idx]);
-                     if (allCorrect) correctCount++;
-                 }
-             } catch(e) {}
+             const pairs = safeParse(q.matchingPairs, []);
+             if (Array.isArray(studentAns) && studentAns.length === pairs.length) {
+                 const allCorrect = pairs.every((item: any, idx: number) => item.right === studentAns[idx]);
+                 if (allCorrect) correctCount++;
+             }
         }
         else if (q.type === QuestionType.COMPLEX_MULTIPLE_CHOICE) {
-            const correctIndices = JSON.parse(q.correctAnswerIndices || '[]');
+            const correctIndices = safeParse(q.correctAnswerIndices, []);
             const studentIndices = studentAns || []; 
             if (Array.isArray(studentIndices) && 
                 studentIndices.length === correctIndices.length && 
@@ -338,7 +342,7 @@ const ExamInterface: React.FC<ExamInterfaceProps> = ({ examId, username, onFinis
                     <div className="text-base md:text-lg font-medium mb-8 text-gray-900 leading-relaxed whitespace-pre-wrap">{currentQ.text}</div>
 
                     <div className="space-y-3">
-                        {currentQ.type === QuestionType.MULTIPLE_CHOICE && JSON.parse(currentQ.options).map((opt: string, idx: number) => (
+                        {currentQ.type === QuestionType.MULTIPLE_CHOICE && safeParse(currentQ.options).map((opt: string, idx: number) => (
                             <label key={idx} className={`flex items-center p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 hover:bg-blue-50 hover:border-blue-200 ${answers[currentQ.id]===idx ? 'bg-blue-50 border-blue-500 ring-1 ring-blue-500' : 'border-gray-100'}`}>
                                 <div className={`w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-full border-2 mr-4 font-bold text-lg transition-colors ${answers[currentQ.id]===idx ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-500 border-gray-200'}`}>{String.fromCharCode(65+idx)}</div>
                                 <input type="radio" className="hidden" checked={answers[currentQ.id]===idx} onChange={() => handleAnswer(idx)} />
@@ -346,7 +350,7 @@ const ExamInterface: React.FC<ExamInterfaceProps> = ({ examId, username, onFinis
                             </label>
                         ))}
 
-                        {currentQ.type === QuestionType.COMPLEX_MULTIPLE_CHOICE && JSON.parse(currentQ.options).map((opt: string, idx: number) => {
+                        {currentQ.type === QuestionType.COMPLEX_MULTIPLE_CHOICE && safeParse(currentQ.options).map((opt: string, idx: number) => {
                              const curr = answers[currentQ.id] || [];
                              const isChecked = curr.includes(idx);
                              return (
@@ -365,54 +369,52 @@ const ExamInterface: React.FC<ExamInterfaceProps> = ({ examId, username, onFinis
 
                         {currentQ.type === QuestionType.TRUE_FALSE && (
                             (() => {
-                                try {
-                                    const opts = JSON.parse(currentQ.options || '["Benar", "Salah"]');
-                                    const pairs = JSON.parse(currentQ.matchingPairs || '[]');
-                                    const currentAns = answers[currentQ.id] || new Array(pairs.length).fill(null);
+                                const opts = safeParse(currentQ.options, ["Benar", "Salah"]);
+                                const pairs = safeParse(currentQ.matchingPairs, []);
+                                const currentAns = answers[currentQ.id] || new Array(pairs.length).fill(null);
 
-                                    return (
-                                        <div className="border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-                                            <table className="w-full">
-                                                <thead className="bg-gray-50 border-b">
-                                                    <tr>
-                                                        <th className="p-4 text-left text-gray-600 font-bold uppercase text-xs tracking-wider">Pernyataan</th>
-                                                        <th className="p-4 w-24 text-center border-l text-gray-600 font-bold uppercase text-xs tracking-wider bg-green-50/50">{opts[0]}</th>
-                                                        <th className="p-4 w-24 text-center border-l text-gray-600 font-bold uppercase text-xs tracking-wider bg-red-50/50">{opts[1]}</th>
+                                return (
+                                    <div className="border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                                        <table className="w-full">
+                                            <thead className="bg-gray-50 border-b">
+                                                <tr>
+                                                    <th className="p-4 text-left text-gray-600 font-bold uppercase text-xs tracking-wider">Pernyataan</th>
+                                                    <th className="p-4 w-24 text-center border-l text-gray-600 font-bold uppercase text-xs tracking-wider bg-green-50/50">{opts[0]}</th>
+                                                    <th className="p-4 w-24 text-center border-l text-gray-600 font-bold uppercase text-xs tracking-wider bg-red-50/50">{opts[1]}</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-100">
+                                                {pairs.map((item: any, idx: number) => (
+                                                    <tr key={idx} className="hover:bg-gray-50 transition-colors">
+                                                        <td className="p-4 text-gray-800 font-medium font-serif">{item.left}</td>
+                                                        <td className="p-4 text-center border-l bg-green-50/10">
+                                                            <div className="flex justify-center">
+                                                                <label className="cursor-pointer relative">
+                                                                    <input type="radio" name={`bs-${currentQ.id}-${idx}`} checked={currentAns[idx] === 'a'} 
+                                                                        onChange={() => {
+                                                                            const n = [...currentAns]; n[idx] = 'a'; handleAnswer(n);
+                                                                        }} 
+                                                                    className="w-6 h-6 accent-green-600 cursor-pointer" />
+                                                                </label>
+                                                            </div>
+                                                        </td>
+                                                        <td className="p-4 text-center border-l bg-red-50/10">
+                                                            <div className="flex justify-center">
+                                                                <label className="cursor-pointer relative">
+                                                                    <input type="radio" name={`bs-${currentQ.id}-${idx}`} checked={currentAns[idx] === 'b'} 
+                                                                        onChange={() => {
+                                                                            const n = [...currentAns]; n[idx] = 'b'; handleAnswer(n);
+                                                                        }} 
+                                                                    className="w-6 h-6 accent-red-600 cursor-pointer" />
+                                                                </label>
+                                                            </div>
+                                                        </td>
                                                     </tr>
-                                                </thead>
-                                                <tbody className="divide-y divide-gray-100">
-                                                    {pairs.map((item: any, idx: number) => (
-                                                        <tr key={idx} className="hover:bg-gray-50 transition-colors">
-                                                            <td className="p-4 text-gray-800 font-medium font-serif">{item.left}</td>
-                                                            <td className="p-4 text-center border-l bg-green-50/10">
-                                                                <div className="flex justify-center">
-                                                                    <label className="cursor-pointer relative">
-                                                                        <input type="radio" name={`bs-${currentQ.id}-${idx}`} checked={currentAns[idx] === 'a'} 
-                                                                            onChange={() => {
-                                                                                const n = [...currentAns]; n[idx] = 'a'; handleAnswer(n);
-                                                                            }} 
-                                                                        className="w-6 h-6 accent-green-600 cursor-pointer" />
-                                                                    </label>
-                                                                </div>
-                                                            </td>
-                                                            <td className="p-4 text-center border-l bg-red-50/10">
-                                                                 <div className="flex justify-center">
-                                                                    <label className="cursor-pointer relative">
-                                                                        <input type="radio" name={`bs-${currentQ.id}-${idx}`} checked={currentAns[idx] === 'b'} 
-                                                                            onChange={() => {
-                                                                                const n = [...currentAns]; n[idx] = 'b'; handleAnswer(n);
-                                                                            }} 
-                                                                        className="w-6 h-6 accent-red-600 cursor-pointer" />
-                                                                    </label>
-                                                                </div>
-                                                            </td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    )
-                                } catch(e) { return <div>Format Error</div>}
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )
                             })()
                         )}
                     </div>

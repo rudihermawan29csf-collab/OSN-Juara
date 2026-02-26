@@ -60,7 +60,7 @@ const App: React.FC = () => {
         switch(currentPage) {
             case 'dashboard': return <StudentDashboard username={username} />;
             case 'exam_list': return <StudentExamList username={username} onStartExam={setActiveExamId} />;
-            case 'materials': return <StudentMaterials />;
+            case 'materials': return <StudentMaterials username={username} />;
             case 'results': return <StudentResults username={username} />;
             default: return <StudentDashboard username={username} />;
         }

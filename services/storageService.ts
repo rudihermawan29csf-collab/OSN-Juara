@@ -30,19 +30,29 @@ const CACHE = {
   Materials: [] as Material[]
 };
 
+// Helper to deduplicate items by ID
+const deduplicate = <T extends { id: string }>(items: T[]): T[] => {
+    const seen = new Set();
+    return items.filter(item => {
+        if (seen.has(item.id)) return false;
+        seen.add(item.id);
+        return true;
+    });
+};
+
 // --- INITIALIZATION: LOAD FROM LOCAL STORAGE OR MOCK DATA ---
 const loadData = () => {
     try {
         const savedData = localStorage.getItem(KEYS.CACHE_DATA);
         if (savedData) {
             const parsed = JSON.parse(savedData);
-            if (parsed.Settings) CACHE.Settings = parsed.Settings;
-            if (parsed.Students) CACHE.Students = parsed.Students;
-            if (parsed.Packets) CACHE.Packets = parsed.Packets;
-            if (parsed.Questions) CACHE.Questions = parsed.Questions;
-            if (parsed.Exams) CACHE.Exams = parsed.Exams;
-            if (parsed.Results) CACHE.Results = parsed.Results;
-            if (parsed.Materials) CACHE.Materials = parsed.Materials;
+            if (parsed.Settings) CACHE.Settings = parsed.Settings; // Settings usually single row
+            if (parsed.Students) CACHE.Students = deduplicate(parsed.Students);
+            if (parsed.Packets) CACHE.Packets = deduplicate(parsed.Packets);
+            if (parsed.Questions) CACHE.Questions = deduplicate(parsed.Questions);
+            if (parsed.Exams) CACHE.Exams = deduplicate(parsed.Exams);
+            if (parsed.Results) CACHE.Results = deduplicate(parsed.Results);
+            if (parsed.Materials) CACHE.Materials = deduplicate(parsed.Materials);
             console.log("Data loaded from Local Storage");
         } else {
             // Initialize with Mock Data if LocalStorage is empty
@@ -139,12 +149,12 @@ export const storage = {
       if (cloudData) {
           console.log("Cloud data received", cloudData);
           if (cloudData.Settings) CACHE.Settings = cloudData.Settings;
-          if (cloudData.Students) CACHE.Students = cloudData.Students;
-          if (cloudData.Packets) CACHE.Packets = cloudData.Packets;
-          if (cloudData.Questions) CACHE.Questions = cloudData.Questions;
-          if (cloudData.Exams) CACHE.Exams = cloudData.Exams;
-          if (cloudData.Results) CACHE.Results = cloudData.Results;
-          if (cloudData.Materials) CACHE.Materials = cloudData.Materials;
+          if (cloudData.Students) CACHE.Students = deduplicate(cloudData.Students);
+          if (cloudData.Packets) CACHE.Packets = deduplicate(cloudData.Packets);
+          if (cloudData.Questions) CACHE.Questions = deduplicate(cloudData.Questions);
+          if (cloudData.Exams) CACHE.Exams = deduplicate(cloudData.Exams);
+          if (cloudData.Results) CACHE.Results = deduplicate(cloudData.Results);
+          if (cloudData.Materials) CACHE.Materials = deduplicate(cloudData.Materials);
           
           saveToLocalStorage();
           return true;
@@ -234,6 +244,15 @@ export const storage = {
       CACHE.Questions.push(newItem);
       saveToLocalStorage();
       apiRequest('create', 'Questions', newItem);
+    },
+    update: (id: string, updates: Partial<Question>) => {
+      const idx = CACHE.Questions.findIndex(q => q.id === id);
+      if (idx !== -1) {
+        const updatedItem = { ...CACHE.Questions[idx], ...updates };
+        CACHE.Questions[idx] = updatedItem;
+        saveToLocalStorage();
+        apiRequest('update', 'Questions', updatedItem, id);
+      }
     },
     getByPacketId: (packetId: string) => CACHE.Questions.filter(q => q.packetId === packetId),
     delete: (id: string) => {
