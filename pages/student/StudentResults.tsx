@@ -77,7 +77,19 @@ const StudentResults: React.FC<StudentResultsProps> = ({ username }) => {
 
             try {
                 if (q.options) {
-                    options = JSON.parse(q.options);
+                    if (Array.isArray(q.options)) {
+                        options = q.options;
+                    } else {
+                        options = JSON.parse(q.options);
+                        // Handle double-stringified JSON
+                        if (typeof options === 'string') {
+                            try {
+                                options = JSON.parse(options);
+                            } catch (e) {
+                                // ignore
+                            }
+                        }
+                    }
                 }
             } catch (e) {
                 options = [];
