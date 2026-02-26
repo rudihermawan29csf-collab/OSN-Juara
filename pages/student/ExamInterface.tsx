@@ -317,7 +317,7 @@ const ExamInterface: React.FC<ExamInterfaceProps> = ({ examId, username, onFinis
                          className={`w-9 h-9 flex-shrink-0 rounded-lg text-xs font-bold border transition-all duration-200 ${
                              currentIdx === i ? 'bg-blue-600 text-white border-blue-600 scale-110 shadow-md ring-2 ring-blue-200' : 
                              doubtful.has(q.id) ? 'bg-yellow-400 text-white border-yellow-500' :
-                             answers[q.id] ? 'bg-green-500 text-white border-green-600' : 
+                             answers[q.id] !== undefined ? 'bg-green-500 text-white border-green-600' : 
                              'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
                          }`}>
                          {i+1}
@@ -434,7 +434,7 @@ const ExamInterface: React.FC<ExamInterfaceProps> = ({ examId, username, onFinis
                                 className={`w-10 h-10 rounded-lg text-sm font-bold border transition-all duration-200 flex items-center justify-center ${
                                     currentIdx === i ? 'bg-blue-600 text-white border-blue-600 shadow-md ring-2 ring-blue-200' : 
                                     doubtful.has(q.id) ? 'bg-yellow-400 text-white border-yellow-500' :
-                                    answers[q.id] ? 'bg-green-500 text-white border-green-600' : 
+                                    answers[q.id] !== undefined ? 'bg-green-500 text-white border-green-600' : 
                                     'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
                                 }`}>
                                 {i+1}

@@ -169,11 +169,29 @@ const QuestionBank: React.FC<QuestionBankProps> = ({ userRole, username }) => {
                         if (typeRaw === 'PGK') type = QuestionType.COMPLEX_MULTIPLE_CHOICE;
                         
                         const optionsRaw = row["Opsi Jawaban (Pisahkan dengan titik koma ;)"] || row["Opsi Jawaban"] || row["Opsi"] || "";
-                        let optionsArray = optionsRaw.toString().split(';').map((s: string) => s.trim()).filter((s: string) => s !== "");
-                        
-                        // Fallback: if splitting by ';' resulted in 1 item (and it wasn't empty), try splitting by ','
-                        if (optionsArray.length <= 1 && optionsRaw.toString().includes(',')) {
-                             optionsArray = optionsRaw.toString().split(',').map((s: string) => s.trim()).filter((s: string) => s !== "");
+                        let optionsArray: string[] = [];
+
+                        // Try to parse as JSON first (e.g. ["A", "B"])
+                        const rawStr = optionsRaw.toString().trim();
+                        if (rawStr.startsWith('[') && rawStr.endsWith(']')) {
+                            try {
+                                const parsed = JSON.parse(rawStr);
+                                if (Array.isArray(parsed)) {
+                                    optionsArray = parsed.map(String);
+                                }
+                            } catch (e) {
+                                // ignore
+                            }
+                        }
+
+                        // If not JSON or empty, try splitting by ; or ,
+                        if (optionsArray.length === 0) {
+                             optionsArray = rawStr.split(';').map((s: string) => s.trim()).filter((s: string) => s !== "");
+                             
+                             // Fallback: if splitting by ';' resulted in 1 item (and it wasn't empty), try splitting by ','
+                             if (optionsArray.length <= 1 && rawStr.includes(',')) {
+                                  optionsArray = rawStr.split(',').map((s: string) => s.trim()).filter((s: string) => s !== "");
+                             }
                         }
 
                         const keysRaw = (row["Kunci Jawaban (Angka 0=A, 1=B, dst)"] || row["Kunci Jawaban"] || row["Kunci"] || "").toString();
