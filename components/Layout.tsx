@@ -84,9 +84,9 @@ const Layout: React.FC<LayoutProps> = ({ children, role, user, onLogout, current
             <button
               key={item.id}
               onClick={() => onNavigate(item.id)}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl focus:outline-none ${
                 currentPage === item.id
-                  ? 'bg-white/20 text-white shadow-lg border border-white/10 backdrop-blur-md'
+                  ? 'bg-white/20 text-white border border-white/10 backdrop-blur-md font-bold'
                   : 'text-gray-300 hover:bg-white/10 hover:text-white'
               } ${isCollapsed ? 'justify-center px-2' : ''}`}
               title={isCollapsed ? item.label : ''}
