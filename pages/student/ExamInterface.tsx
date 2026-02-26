@@ -83,7 +83,8 @@ const ExamInterface: React.FC<ExamInterfaceProps> = ({ examId, username, onFinis
                   return {
                       ...q,
                       options: JSON.stringify(shuffledOptions.map(item => item.text)),
-                      correctAnswerIndex: newCorrectIndex
+                      correctAnswerIndex: newCorrectIndex,
+                      originalIndices: shuffledOptions.map(item => item.originalIdx) // Store mapping
                   };
               }
           }
@@ -105,7 +106,8 @@ const ExamInterface: React.FC<ExamInterfaceProps> = ({ examId, username, onFinis
                    return {
                        ...q,
                        options: JSON.stringify(shuffledOptions.map(item => item.text)),
-                       correctAnswerIndices: JSON.stringify(newCorrectIndices)
+                       correctAnswerIndices: JSON.stringify(newCorrectIndices),
+                       originalIndices: shuffledOptions.map(item => item.originalIdx) // Store mapping
                    };
                }
           }
@@ -205,9 +207,26 @@ const ExamInterface: React.FC<ExamInterfaceProps> = ({ examId, username, onFinis
     const allStudents = storage.students.getAll();
     const me = allStudents.find(s => s.name === username);
 
-    // Note: Since we shuffled options, the 'answers' stored are based on the shuffled indices.
-    // For advanced analytics later, you might want to store the question text or remap back,
-    // but for simple scoring, storing the score is sufficient.
+    // REMAP ANSWERS BACK TO ORIGINAL INDICES FOR STORAGE
+    const finalAnswers = { ...answers };
+    questions.forEach(q => {
+        const ans = answers[q.id];
+        if (ans === undefined || ans === null) return;
+        
+        const qWithMap = q as any;
+        if (qWithMap.originalIndices) {
+            if (q.type === QuestionType.MULTIPLE_CHOICE) {
+                // ans is shuffled index -> map to original index
+                finalAnswers[q.id] = qWithMap.originalIndices[ans];
+            }
+            else if (q.type === QuestionType.COMPLEX_MULTIPLE_CHOICE) {
+                // ans is array of shuffled indices -> map each to original index
+                if (Array.isArray(ans)) {
+                    finalAnswers[q.id] = ans.map((idx: number) => qWithMap.originalIndices[idx]);
+                }
+            }
+        }
+    });
     
     storage.results.add({
         id: Date.now().toString(),
@@ -219,7 +238,7 @@ const ExamInterface: React.FC<ExamInterfaceProps> = ({ examId, username, onFinis
         score: score,
         literasiScore: 0,
         numerasiScore: 0,
-        answers: JSON.stringify(answers),
+        answers: JSON.stringify(finalAnswers),
         timestamp: new Date().toISOString(),
         violationCount: violationRef.current, // Use Ref to ensure latest value
         isDisqualified: forced && violationRef.current >= 3
