@@ -77,18 +77,28 @@ const Monitoring: React.FC<MonitoringProps> = ({ userRole, username }) => {
             relevantExams = exams.filter(e => e.category === teacherCategory);
         }
 
-        // Get results for this student
-        const studentResults = results.filter(r => r.studentName === student.name); // Using name as ID might be risky if names are not unique, ideally use ID
+        // Get results for this student (match by ID first, then Name as fallback)
+        const studentResults = results.filter(r => r.studentId === student.id || r.studentName === student.name);
         
         // Map results to exams to get chronological scores
         const examProgress = relevantExams.map(exam => {
             // Find best score for this exam (if multiple attempts allowed)
             const attempts = studentResults.filter(r => r.examId === exam.id);
+            
+            if (attempts.length === 0) {
+                return {
+                    examTitle: exam.title,
+                    score: null,
+                    date: null,
+                    order: exam.order || 0
+                };
+            }
+
             const bestAttempt = attempts.sort((a, b) => b.score - a.score)[0];
             return {
                 examTitle: exam.title,
-                score: bestAttempt ? bestAttempt.score : null,
-                date: bestAttempt ? bestAttempt.timestamp : null,
+                score: bestAttempt.score, // This can be 0, which is valid
+                date: bestAttempt.timestamp,
                 order: exam.order || 0
             };
         }).filter(item => item.score !== null); // Only completed exams

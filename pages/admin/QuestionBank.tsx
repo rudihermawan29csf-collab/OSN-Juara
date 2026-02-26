@@ -426,6 +426,28 @@ const QuestionBank: React.FC<QuestionBankProps> = ({ userRole, username }) => {
       setBsItems(newItems);
   };
 
+  // Helper for safe parsing options
+  const safeParseOptions = (jsonString: string | undefined): string[] => {
+      if (!jsonString) return ["", "", "", ""];
+      try {
+          let parsed = JSON.parse(jsonString);
+          // Handle double-stringified JSON
+          if (typeof parsed === 'string') {
+              try {
+                  parsed = JSON.parse(parsed);
+              } catch {
+                  return ["", "", "", ""];
+              }
+          }
+          if (Array.isArray(parsed)) {
+              return parsed.length > 0 ? parsed : ["", "", "", ""];
+          }
+          return ["", "", "", ""];
+      } catch (e) {
+          return ["", "", "", ""];
+      }
+  };
+
   const renderQuestionFormInput = () => {
       if (questionForm.type === QuestionType.TRUE_FALSE) {
           return (
@@ -468,12 +490,7 @@ const QuestionBank: React.FC<QuestionBankProps> = ({ userRole, username }) => {
           );
       }
       
-      let opts: string[] = [];
-      try {
-          opts = JSON.parse(questionForm.options || '[]');
-      } catch (e) {
-          opts = ["", "", "", ""];
-      }
+      const opts = safeParseOptions(questionForm.options);
 
       let indices: number[] = [];
       try {
@@ -548,17 +565,7 @@ const QuestionBank: React.FC<QuestionBankProps> = ({ userRole, username }) => {
              );
         }
         
-        let opts: string[] = [];
-        try {
-            if (typeof q.options === 'string') {
-                opts = JSON.parse(q.options || '[]');
-            } else if (Array.isArray(q.options)) {
-                opts = q.options;
-            }
-        } catch (e) {
-            console.warn("Failed to parse options", e);
-            opts = [];
-        }
+        const opts = safeParseOptions(q.options);
 
         let correctIndices: number[] = [];
         try {
