@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { storage } from '../../services/storageService';
-import { Exam, Packet, Material, Student } from '../../types';
+import { Exam, Packet, Student } from '../../types';
 
 interface StudentExamListProps {
     username: string;
@@ -11,7 +11,6 @@ const StudentExamList: React.FC<StudentExamListProps> = ({ username, onStartExam
   const [scheduleItems, setScheduleItems] = useState<Array<{ 
       exam: Exam, 
       packet?: Packet, 
-      material?: Material,
       isLocked: boolean,
       isCompleted: boolean,
       score?: number,
@@ -29,14 +28,14 @@ const StudentExamList: React.FC<StudentExamListProps> = ({ username, onStartExam
         const now = new Date();
         const allExams = storage.exams.getAll();
         const allPackets = storage.packets.getAll();
-        const allMaterials = storage.materials.getAll();
         const allResults = storage.results.getAll();
 
         // Filter relevant schedules
         const relevantExams = allExams.filter(e => {
             const isTargetClass = (e.classTarget || '').split(',').includes(me.class) || e.classTarget === 'All';
             const isActive = e.isActive;
-            return isTargetClass && isActive;
+            // Only include exams that have a packet (since we removed materials)
+            return isTargetClass && isActive && e.packetId;
         });
 
         // Sort by Order
@@ -50,13 +49,7 @@ const StudentExamList: React.FC<StudentExamListProps> = ({ username, onStartExam
             let score = undefined;
             let status: 'locked' | 'open' | 'completed' | 'failed' = 'locked';
 
-            // 1. Check Material Completion
-            if (exam.materialId) {
-                const isRead = me.readMaterials?.includes(exam.materialId);
-                if (isRead) isCompleted = true;
-            }
-
-            // 2. Check Exam Completion (Overrides material if both exist, or standalone)
+            // Check Exam Completion
             if (exam.packetId) {
                 const attempts = allResults.filter(r => r.examId === exam.id && r.studentName === me.name);
                 attempts.sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
@@ -72,8 +65,6 @@ const StudentExamList: React.FC<StudentExamListProps> = ({ username, onStartExam
                         status = 'failed';
                     }
                 }
-            } else if (exam.materialId && isCompleted) {
-                status = 'completed';
             }
 
             // Determine Lock Status
@@ -91,7 +82,6 @@ const StudentExamList: React.FC<StudentExamListProps> = ({ username, onStartExam
             return {
                 exam,
                 packet: allPackets.find(p => p.id === exam.packetId),
-                material: allMaterials.find(m => m.id === exam.materialId),
                 isLocked: status === 'locked',
                 isCompleted,
                 score,
@@ -103,21 +93,11 @@ const StudentExamList: React.FC<StudentExamListProps> = ({ username, onStartExam
     }
   }, [username]);
 
-  const handleMaterialClick = (material: Material) => {
-      // Navigate to materials page or open modal?
-      // For now, simpler to just tell user to go to materials page, 
-      // BUT better: we should probably render material here or redirect.
-      // Since we can't easily redirect with props in this setup without router,
-      // let's assume the user goes to "Materi" menu.
-      // Actually, let's just alert for now or try to open it if we had the handler.
-      alert(`Silakan buka menu "Materi" dan cari: ${material.title}`);
-  };
-
   return (
     <div className="space-y-8 animate-fadeIn max-w-5xl mx-auto">
        <div className="text-center mb-10">
-            <h2 className="text-3xl font-extrabold text-gray-800">Alur Pembelajaran</h2>
-            <p className="text-gray-500 mt-2">Selesaikan materi dan ujian secara berurutan</p>
+            <h2 className="text-3xl font-extrabold text-gray-800">Daftar Ujian</h2>
+            <p className="text-gray-500 mt-2">Selesaikan ujian secara berurutan</p>
        </div>
 
        <div className="relative">
@@ -148,7 +128,6 @@ const StudentExamList: React.FC<StudentExamListProps> = ({ username, onStartExam
                                <div>
                                    <h3 className="text-xl font-bold text-gray-800">{item.exam.title}</h3>
                                    <div className="text-sm text-gray-500 mt-1">
-                                       {item.material && <span className="mr-4">📖 {item.material.title}</span>}
                                        {item.packet && <span>📝 {item.packet.name} ({item.packet.totalQuestions} Soal)</span>}
                                    </div>
                                </div>
@@ -178,27 +157,11 @@ const StudentExamList: React.FC<StudentExamListProps> = ({ username, onStartExam
                                        )}
                                    </div>
                                )}
-                               {item.material && (
-                                   <div className="flex items-center gap-2">
-                                       <span>📚 Status Baca: </span>
-                                       <span className={`font-bold ${student?.readMaterials?.includes(item.material.id) ? 'text-green-600' : 'text-red-600'}`}>
-                                           {student?.readMaterials?.includes(item.material.id) ? 'Sudah Dibaca' : 'Belum Dibaca'}
-                                       </span>
-                                   </div>
-                               )}
                            </div>
 
                            {/* Actions */}
                            {!item.isLocked && (
                                <div className="mt-6 flex gap-3">
-                                   {item.material && (
-                                       <button 
-                                           onClick={() => handleMaterialClick(item.material!)}
-                                           className="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg font-bold hover:bg-blue-100 transition-colors"
-                                       >
-                                           📖 Buka Materi
-                                       </button>
-                                   )}
                                    {item.packet && (
                                        <button 
                                            onClick={() => onStartExam(item.exam.id)}

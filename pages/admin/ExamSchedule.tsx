@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { storage } from '../../services/storageService';
-import { Exam, Packet, Material, UserRole } from '../../types';
+import { Exam, Packet, UserRole } from '../../types';
 
 interface ExamScheduleProps {
     userRole: UserRole | null;
@@ -10,7 +10,6 @@ interface ExamScheduleProps {
 const ExamSchedule: React.FC<ExamScheduleProps> = ({ userRole, username }) => {
   const [exams, setExams] = useState<Exam[]>([]);
   const [packets, setPackets] = useState<Packet[]>([]);
-  const [materials, setMaterials] = useState<Material[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [newExam, setNewExam] = useState<Partial<Exam>>({});
   const [availableClasses, setAvailableClasses] = useState<string[]>([]);
@@ -31,14 +30,7 @@ const ExamSchedule: React.FC<ExamScheduleProps> = ({ userRole, username }) => {
     }
     setPackets(allPackets);
 
-    // 2. Get Materials & Filter
-    let allMaterials = storage.materials.getAll();
-    if (userRole === UserRole.TEACHER && teacherCategory) {
-        allMaterials = allMaterials.filter(m => m.category === teacherCategory);
-    }
-    setMaterials(allMaterials);
-
-    // 3. Get Exams & Filter based on Teacher Category
+    // 2. Get Exams & Filter based on Teacher Category
     let allExams = storage.exams.getAll();
     if (userRole === UserRole.TEACHER && teacherCategory) {
         allExams = allExams.filter(e => e.category === teacherCategory);
@@ -50,16 +42,10 @@ const ExamSchedule: React.FC<ExamScheduleProps> = ({ userRole, username }) => {
     setAvailableClasses(classes);
   }, [userRole, username, teacherCategory]);
 
-  // Filter packets/materials for the modal
+  // Filter packets for the modal
   const filteredPackets = packets.filter(p => {
       if (teacherCategory) return p.category === teacherCategory;
       if (newExam.category) return p.category === newExam.category;
-      return true;
-  });
-
-  const filteredMaterials = materials.filter(m => {
-      if (teacherCategory) return m.category === teacherCategory;
-      if (newExam.category) return m.category === newExam.category;
       return true;
   });
 
@@ -72,7 +58,7 @@ const ExamSchedule: React.FC<ExamScheduleProps> = ({ userRole, username }) => {
   }, [newExam.id]); 
 
   const handleAddExam = () => {
-    if (newExam.title && (newExam.packetId || newExam.materialId)) {
+    if (newExam.title && newExam.packetId) {
       const examData = {
           ...newExam,
           classTarget: 'All', 
@@ -99,7 +85,7 @@ const ExamSchedule: React.FC<ExamScheduleProps> = ({ userRole, username }) => {
       setNewExam({});
       setSelectedClasses([]);
     } else {
-        alert("Mohon lengkapi data (Judul, dan minimal pilih Materi atau Paket Soal).");
+        alert("Mohon lengkapi data (Judul dan Paket Soal).");
     }
   };
 
@@ -133,14 +119,13 @@ const ExamSchedule: React.FC<ExamScheduleProps> = ({ userRole, username }) => {
   };
 
   const getPacketName = (id?: string) => id ? (packets.find(p => p.id === id)?.name || "Paket Tidak Ditemukan") : "-";
-  const getMaterialName = (id?: string) => id ? (materials.find(m => m.id === id)?.title || "Materi Tidak Ditemukan") : "-";
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-            <h2 className="text-2xl font-bold text-gray-800">Jadwal Pembelajaran (LMS)</h2>
-            <p className="text-sm text-gray-500">Atur urutan materi dan ujian siswa</p>
+            <h2 className="text-2xl font-bold text-gray-800">Jadwal Ujian</h2>
+            <p className="text-sm text-gray-500">Atur jadwal dan urutan ujian siswa</p>
             {teacherCategory && <span className={`text-xs font-bold px-2 py-1 rounded text-white ${teacherCategory === 'OSN IPS' ? 'bg-orange-500' : teacherCategory === 'OSN IPA' ? 'bg-green-600' : 'bg-blue-600'}`}>Mode Guru: {teacherCategory}</span>}
         </div>
         <button 
@@ -152,19 +137,13 @@ const ExamSchedule: React.FC<ExamScheduleProps> = ({ userRole, username }) => {
       </div>
 
       <div className="grid gap-4">
-        {exams.length === 0 && <div className="text-center text-gray-500 py-10">Belum ada jadwal pembelajaran.</div>}
+        {exams.length === 0 && <div className="text-center text-gray-500 py-10">Belum ada jadwal ujian.</div>}
         {exams.map(exam => (
           <div key={exam.id} className="bg-white p-6 rounded-lg shadow border-l-4 border-blue-500 flex flex-col md:flex-row justify-between items-start md:items-center group gap-4 relative">
             <div className="absolute top-2 right-2 text-xs font-bold text-gray-300">#{exam.order}</div>
             <div className="flex-1">
               <h3 className="text-xl font-bold text-gray-800">{exam.title}</h3>
               <div className="flex flex-col gap-1 mt-2 text-sm">
-                  {exam.materialId && (
-                      <div className="flex items-center gap-2 text-blue-600">
-                          <span>📖</span>
-                          <span className="font-semibold">Materi: {getMaterialName(exam.materialId)}</span>
-                      </div>
-                  )}
                   {exam.packetId && (
                       <div className="flex items-center gap-2 text-purple-600">
                           <span>📝</span>
@@ -207,7 +186,7 @@ const ExamSchedule: React.FC<ExamScheduleProps> = ({ userRole, username }) => {
                       <label className="text-xs font-bold text-gray-500">Judul Sesi</label>
                       <input 
                         className="w-full border p-2 rounded mt-1" 
-                        placeholder="Contoh: Sesi 1 - Pengenalan Biologi"
+                        placeholder="Contoh: Ujian Harian 1"
                         value={newExam.title || ''}
                         onChange={e => setNewExam({...newExam, title: e.target.value})}
                       />
@@ -238,21 +217,9 @@ const ExamSchedule: React.FC<ExamScheduleProps> = ({ userRole, username }) => {
                   </select>
               </div>
               
-              <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl border">
+              <div className="bg-gray-50 p-4 rounded-xl border">
                   <div>
-                      <label className="text-xs font-bold text-blue-600 block mb-1">📖 Materi (Opsional)</label>
-                      <select 
-                        className="w-full border p-2 rounded"
-                        value={newExam.materialId || ''}
-                        onChange={e => setNewExam({...newExam, materialId: e.target.value})}
-                        disabled={!newExam.category && !teacherCategory}
-                      >
-                        <option value="">-- Pilih Materi --</option>
-                        {filteredMaterials.map(m => <option key={m.id} value={m.id}>{m.title}</option>)}
-                      </select>
-                  </div>
-                  <div>
-                      <label className="text-xs font-bold text-purple-600 block mb-1">📝 Ujian (Opsional)</label>
+                      <label className="text-xs font-bold text-purple-600 block mb-1">📝 Paket Soal</label>
                       <select 
                         className="w-full border p-2 rounded"
                         value={newExam.packetId || ''}
@@ -290,7 +257,7 @@ const ExamSchedule: React.FC<ExamScheduleProps> = ({ userRole, username }) => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                   <label className="text-xs font-bold text-gray-500">Waktu Mulai (Upload)</label>
+                   <label className="text-xs font-bold text-gray-500">Waktu Mulai</label>
                    <input 
                     type="datetime-local" 
                     className="w-full border p-2 rounded mt-1" 
