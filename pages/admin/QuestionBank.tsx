@@ -169,8 +169,23 @@ const QuestionBank: React.FC<QuestionBankProps> = ({ userRole, username }) => {
                         if (typeRaw === 'PGK') type = QuestionType.COMPLEX_MULTIPLE_CHOICE;
                         
                         const optionsRaw = row["Opsi Jawaban (Pisahkan dengan titik koma ;)"] || row["Opsi Jawaban"] || row["Opsi"] || "";
-                        const optionsArray = optionsRaw.toString().split(';').map((s: string) => s.trim()).filter((s: string) => s !== "");
+                        let optionsArray = optionsRaw.toString().split(';').map((s: string) => s.trim()).filter((s: string) => s !== "");
+                        
+                        // Fallback: if splitting by ';' resulted in 1 item (and it wasn't empty), try splitting by ','
+                        if (optionsArray.length <= 1 && optionsRaw.toString().includes(',')) {
+                             optionsArray = optionsRaw.toString().split(',').map((s: string) => s.trim()).filter((s: string) => s !== "");
+                        }
+
                         const keysRaw = (row["Kunci Jawaban (Angka 0=A, 1=B, dst)"] || row["Kunci Jawaban"] || row["Kunci"] || "").toString();
+                        
+                        // Helper to split keys
+                        const splitKeys = (raw: string) => {
+                            let res = raw.split(';').map(s => s.trim()).filter(s => s !== "");
+                            if (res.length <= 1 && raw.includes(',')) {
+                                res = raw.split(',').map(s => s.trim()).filter(s => s !== "");
+                            }
+                            return res;
+                        };
 
                         let finalOptions = '[]';
                         let matchingPairs = '[]';
@@ -182,7 +197,7 @@ const QuestionBank: React.FC<QuestionBankProps> = ({ userRole, username }) => {
                             // Asumsi input excel: Opsi Jawaban = "Pernyataan 1; Pernyataan 2"
                             // Kunci = "a;b" (a=Benar, b=Salah)
                             finalOptions = JSON.stringify(["Benar", "Salah"]);
-                            const keys = keysRaw.split(';');
+                            const keys = splitKeys(keysRaw);
                             
                             const pairs = optionsArray.map((opt: string, idx: number) => ({
                                 left: opt,
@@ -194,7 +209,7 @@ const QuestionBank: React.FC<QuestionBankProps> = ({ userRole, username }) => {
                             // Logic Import PGK
                             finalOptions = JSON.stringify(optionsArray);
                             // Parse "0;2" -> [0, 2]
-                            const indices = keysRaw.split(';').map(k => parseInt(k.trim())).filter(n => !isNaN(n));
+                            const indices = splitKeys(keysRaw).map(k => parseInt(k)).filter(n => !isNaN(n));
                             correctAnswerIndices = JSON.stringify(indices);
 
                         } else {
