@@ -460,8 +460,9 @@ const QuestionBank: React.FC<QuestionBankProps> = ({ userRole, username }) => {
   };
 
   // Helper for safe parsing options
-  const safeParseOptions = (jsonString: string | undefined): string[] => {
+  const safeParseOptions = (jsonString: string | undefined | any): string[] => {
       if (!jsonString) return ["", "", "", ""];
+      if (Array.isArray(jsonString)) return jsonString; // Handle if it's already an array
       try {
           let parsed = JSON.parse(jsonString);
           // Handle double-stringified JSON

@@ -36,8 +36,9 @@ const ExamInterface: React.FC<ExamInterfaceProps> = ({ examId, username, onFinis
   };
 
   // Helper: Safe JSON Parse
-  const safeParse = (jsonString: string, fallback: any = []) => {
+  const safeParse = (jsonString: string | any, fallback: any = []) => {
       if (!jsonString) return fallback;
+      if (Array.isArray(jsonString)) return jsonString; // Handle if it's already an array
       try {
           let parsed = JSON.parse(jsonString);
           
