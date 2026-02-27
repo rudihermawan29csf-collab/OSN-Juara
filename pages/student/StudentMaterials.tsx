@@ -43,9 +43,21 @@ const StudentMaterials: React.FC<StudentMaterialsProps> = ({ username }) => {
         }
     };
 
-    const filteredMaterials = filter === 'All' 
-        ? materials 
-        : materials.filter(m => m.category === filter);
+    const filteredMaterials = materials.filter(m => {
+        // 1. Filter by student's enrolled subjects
+        if (currentStudent && currentStudent.osnSubjects && currentStudent.osnSubjects.length > 0) {
+            if (!currentStudent.osnSubjects.includes(m.category)) {
+                return false;
+            }
+        }
+        
+        // 2. Filter by dropdown selection
+        if (filter !== 'All' && m.category !== filter) {
+            return false;
+        }
+        
+        return true;
+    });
 
     const renderThumbnail = (material: Material) => {
         const type = material.type || 'embed';
@@ -124,9 +136,11 @@ const StudentMaterials: React.FC<StudentMaterialsProps> = ({ username }) => {
                     onChange={e => setFilter(e.target.value)}
                 >
                     <option value="All">Semua Materi</option>
-                    <option value="OSN IPA">OSN IPA</option>
-                    <option value="OSN IPS">OSN IPS</option>
-                    <option value="OSN Matematika">OSN Matematika</option>
+                    {(!currentStudent || currentStudent.osnSubjects?.includes('OSN IPA')) && <option value="OSN IPA">OSN IPA</option>}
+                    {(!currentStudent || currentStudent.osnSubjects?.includes('OSN IPS')) && <option value="OSN IPS">OSN IPS</option>}
+                    {(!currentStudent || currentStudent.osnSubjects?.includes('OSN Matematika')) && <option value="OSN Matematika">OSN Matematika</option>}
+                    {(!currentStudent || currentStudent.osnSubjects?.includes('Literasi')) && <option value="Literasi">Literasi</option>}
+                    {(!currentStudent || currentStudent.osnSubjects?.includes('Numerasi')) && <option value="Numerasi">Numerasi</option>}
                 </select>
             </div>
 

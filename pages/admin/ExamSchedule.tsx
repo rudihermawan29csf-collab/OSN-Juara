@@ -59,11 +59,11 @@ const ExamSchedule: React.FC<ExamScheduleProps> = ({ userRole, username }) => {
       }
   }, [newExam.id]); 
 
-  const handleAddExam = () => {
-    if (newExam.title && newExam.packetId) {
+      const handleAddExam = () => {
+    if (newExam.title && newExam.packetId && selectedClasses.length > 0) {
       const examData = {
           ...newExam,
-          classTarget: 'All', 
+          classTarget: selectedClasses.join(','), 
           isActive: newExam.id ? newExam.isActive : true,
           questions: '[]',
           minScore: newExam.minScore || 70,
@@ -87,7 +87,7 @@ const ExamSchedule: React.FC<ExamScheduleProps> = ({ userRole, username }) => {
       setNewExam({});
       setSelectedClasses([]);
     } else {
-        alert("Mohon lengkapi data (Judul dan Paket Soal).");
+        alert("Mohon lengkapi data (Judul, Paket Soal, dan Kelas Target).");
     }
   };
 
@@ -225,6 +225,43 @@ const ExamSchedule: React.FC<ExamScheduleProps> = ({ userRole, username }) => {
                     <option value="Literasi">Literasi</option>
                     <option value="Numerasi">Numerasi</option>
                   </select>
+              </div>
+
+              <div>
+                  <label className="text-xs font-bold text-gray-500 mb-2 block">Target Kelas</label>
+                  <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto border p-2 rounded bg-gray-50">
+                      {availableClasses.map(cls => (
+                          <label key={cls} className="flex items-center gap-1 bg-white px-2 py-1 rounded border shadow-sm cursor-pointer hover:bg-blue-50">
+                              <input 
+                                  type="checkbox"
+                                  checked={selectedClasses.includes(cls)}
+                                  onChange={e => {
+                                      if (e.target.checked) {
+                                          setSelectedClasses([...selectedClasses, cls]);
+                                      } else {
+                                          setSelectedClasses(selectedClasses.filter(c => c !== cls));
+                                      }
+                                  }}
+                                  className="rounded text-blue-600 focus:ring-blue-500"
+                              />
+                              <span className="text-sm font-medium">{cls}</span>
+                          </label>
+                      ))}
+                  </div>
+                  <div className="mt-1 flex gap-2">
+                      <button 
+                          onClick={() => setSelectedClasses(availableClasses)}
+                          className="text-xs text-blue-600 hover:underline"
+                      >
+                          Pilih Semua
+                      </button>
+                      <button 
+                          onClick={() => setSelectedClasses([])}
+                          className="text-xs text-gray-500 hover:underline"
+                      >
+                          Reset
+                      </button>
+                  </div>
               </div>
               
               <div className="bg-gray-50 p-4 rounded-xl border">

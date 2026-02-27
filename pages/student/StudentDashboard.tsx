@@ -29,9 +29,14 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ username }) => {
         const allPackets = storage.packets.getAll();
         const allResults = storage.results.getAll();
         
-        const targetedExams = allExams.filter(e => 
-            e.classTarget.split(',').includes(me.class)
-        );
+        const targetedExams = allExams.filter(e => {
+            const isClassMatch = e.classTarget.split(',').includes(me.class);
+            // Filter by enrolled subjects if they exist
+            const isSubjectMatch = me.osnSubjects && me.osnSubjects.length > 0
+                ? me.osnSubjects.includes(e.category)
+                : true;
+            return isClassMatch && isSubjectMatch;
+        });
 
         // 3. Map to Dashboard items with Category and Status
         let dashboardData: DashboardItem[] = targetedExams.map(exam => {

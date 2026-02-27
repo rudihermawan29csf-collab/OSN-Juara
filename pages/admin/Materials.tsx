@@ -18,7 +18,9 @@ const Materials: React.FC<MaterialsProps> = ({ userRole, username }) => {
     const teacherCategory = userRole === UserRole.TEACHER 
         ? (username.includes('OSN IPA') ? 'OSN IPA' : 
            username.includes('OSN IPS') ? 'OSN IPS' : 
-           username.includes('OSN Matematika') ? 'OSN Matematika' : null)
+           username.includes('OSN Matematika') ? 'OSN Matematika' : 
+           username.includes('Literasi') ? 'Literasi' :
+           username.includes('Numerasi') ? 'Numerasi' : null)
         : null;
 
     useEffect(() => {
