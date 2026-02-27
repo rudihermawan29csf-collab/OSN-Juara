@@ -46,21 +46,60 @@ const StudentData: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleImport = () => {
-      alert("Simulasi Import Excel: Membaca file dan menambahkan siswa...");
-      // Mock importing data
-      const newMock: Student = {
-          id: '',
-          no: (students.length + 1).toString(),
-          name: 'Siswa Import Excel',
-          class: '9Z',
-          nis: '9999',
-          nisn: '00000000',
-          osnSubjects: []
+  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+          const bstr = evt.target?.result;
+          const wb = XLSX.read(bstr, { type: 'binary' });
+          const wsname = wb.SheetNames[0];
+          const ws = wb.Sheets[wsname];
+          const data = XLSX.utils.sheet_to_json(ws);
+
+          if (data.length > 0) {
+              if (confirm(`Ditemukan ${data.length} baris data. Import sekarang?`)) {
+                  let importedCount = 0;
+                  data.forEach((row: any) => {
+                      // Map Excel columns to Student object
+                      // Expected columns: "Nama Lengkap", "Kelas", "NIS", "NISN", "OSN (Pisahkan koma)"
+                      const name = row["Nama Lengkap"] || row["Nama"] || row["nama"];
+                      const kelas = row["Kelas"] || row["kelas"];
+                      const nis = row["NIS"] || row["nis"];
+                      const nisn = row["NISN"] || row["nisn"];
+                      const osnRaw = row["OSN (Pisahkan koma)"] || row["OSN"] || "";
+                      
+                      if (name && kelas) {
+                          let osnSubjects: string[] = [];
+                          if (osnRaw) {
+                              osnSubjects = String(osnRaw).split(',').map((s: string) => s.trim()).filter((s: string) => s);
+                          }
+                          
+                          const newStudent: Student = {
+                              id: '', // Will be generated
+                              no: '',
+                              name: String(name),
+                              class: String(kelas),
+                              nis: String(nis || ''),
+                              nisn: String(nisn || ''),
+                              osnSubjects: osnSubjects
+                          };
+                          
+                          storage.students.add(newStudent);
+                          importedCount++;
+                      }
+                  });
+                  
+                  alert(`Berhasil mengimpor ${importedCount} data siswa.`);
+                  loadData();
+              }
+          } else {
+              alert("File Excel kosong atau format tidak sesuai.");
+          }
+          setFileInputKey(Date.now()); // Reset input
       };
-      storage.students.add(newMock);
-      loadData();
-      setFileInputKey(Date.now()); // Reset input
+      reader.readAsBinaryString(file);
   };
 
   const handleDownloadTemplate = () => {
