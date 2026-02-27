@@ -30,11 +30,22 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ username }) => {
         const allResults = storage.results.getAll();
         
         const targetedExams = allExams.filter(e => {
-            const isClassMatch = e.classTarget.split(',').includes(me.class);
-            // Filter by enrolled subjects if they exist
+            // 1. Check Class Match
+            const targetClasses = e.classTarget ? e.classTarget.split(',') : [];
+            const isClassMatch = targetClasses.includes(me.class) || e.classTarget === 'All';
+
+            // 2. Check Category Match
+            // Fallback to packet category if exam category is missing
+            const packet = allPackets.find(p => p.id === e.packetId);
+            const examCategory = e.category || packet?.category;
+
+            // If student has specific subjects, they should ONLY see exams for those subjects
+            // If exam has no category, we assume it's general (visible to all or subject to other rules)
+            // If student has NO subjects, they see everything (or maybe nothing? assuming everything for now)
             const isSubjectMatch = me.osnSubjects && me.osnSubjects.length > 0
-                ? me.osnSubjects.includes(e.category)
+                ? (examCategory ? me.osnSubjects.includes(examCategory) : true)
                 : true;
+
             return isClassMatch && isSubjectMatch;
         });
 
