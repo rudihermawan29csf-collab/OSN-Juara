@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import * as XLSX from 'xlsx';
 import { storage } from '../../services/storageService';
 import { Student } from '../../types';
 
@@ -63,7 +64,24 @@ const StudentData: React.FC = () => {
   };
 
   const handleDownloadTemplate = () => {
-      alert("Mengunduh Template Excel (Simulasi)...");
+      // Create a worksheet
+      const ws = XLSX.utils.json_to_sheet([
+          {
+              "No": 1,
+              "Nama Lengkap": "Contoh Siswa",
+              "Kelas": "7A",
+              "NIS": "12345",
+              "NISN": "0012345678",
+              "OSN (Pisahkan koma)": "OSN IPA, Literasi"
+          }
+      ]);
+
+      // Create a workbook
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Template Siswa");
+
+      // Generate Excel file and trigger download
+      XLSX.writeFile(wb, "Template_Data_Siswa.xlsx");
   };
 
   const filteredStudents = filterClass 
@@ -143,7 +161,11 @@ const StudentData: React.FC = () => {
                     <div className="flex flex-wrap gap-1">
                         {student.osnSubjects?.map(s => (
                             <span key={s} className={`text-[10px] px-2 py-0.5 rounded text-white font-bold ${
-                                s.includes('IPA') ? 'bg-green-600' : s.includes('IPS') ? 'bg-orange-500' : 'bg-blue-600'
+                                s.includes('IPA') ? 'bg-green-600' : 
+                                s.includes('IPS') ? 'bg-orange-500' : 
+                                s.includes('Matematika') ? 'bg-blue-600' :
+                                s.includes('Literasi') ? 'bg-purple-600' :
+                                'bg-teal-600'
                             }`}>
                                 {s.replace('OSN ', '')}
                             </span>
@@ -173,7 +195,7 @@ const StudentData: React.FC = () => {
               <div className="space-y-2 border p-3 rounded bg-gray-50">
                   <label className="block text-sm font-bold text-gray-700">Mengikuti OSN:</label>
                   <div className="flex flex-col gap-2">
-                      {['OSN IPA', 'OSN IPS', 'OSN Matematika'].map(subject => (
+                      {['OSN IPA', 'OSN IPS', 'OSN Matematika', 'Literasi', 'Numerasi'].map(subject => (
                           <label key={subject} className="flex items-center gap-2 text-sm cursor-pointer">
                               <input 
                                   type="checkbox" 

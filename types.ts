@@ -22,6 +22,8 @@ export interface SchoolSettings {
   teacherIpaPassword: string;
   teacherIpsPassword: string;
   teacherMtkPassword: string;
+  teacherLiterasiPassword: string;
+  teacherNumerasiPassword: string;
 }
 
 export interface Student {
@@ -91,6 +93,12 @@ export interface Result {
   timestamp: string;
   violationCount: number;
   isDisqualified: boolean;
+  category?: string;
+  title?: string;
+  type?: string;
+  content?: string;
+  embedCode?: string;
+  createdAt?: string;
 }
 
 export interface Material {

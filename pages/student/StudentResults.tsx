@@ -170,7 +170,7 @@ const StudentResults: React.FC<StudentResultsProps> = ({ username }) => {
         }));
 
     // Bar Chart Data (Average per category)
-    const categoryStats = ['OSN IPA', 'OSN IPS', 'OSN Matematika'].map(cat => {
+    const categoryStats = ['OSN IPA', 'OSN IPS', 'OSN Matematika', 'Literasi', 'Numerasi'].map(cat => {
         const catResults = results.filter(r => r.category === cat);
         const avg = catResults.length > 0 
             ? Math.round(catResults.reduce((acc, curr) => acc + Number(curr.score), 0) / catResults.length) 
@@ -305,7 +305,9 @@ const StudentResults: React.FC<StudentResultsProps> = ({ username }) => {
                                             <Cell key={`cell-${index}`} fill={
                                                 entry.name === 'IPA' ? '#16a34a' : 
                                                 entry.name === 'IPS' ? '#ea580c' : 
-                                                '#2563eb'
+                                                entry.name === 'Matematika' ? '#2563eb' :
+                                                entry.name === 'Literasi' ? '#9333ea' : // Purple
+                                                '#0d9488' // Teal for Numerasi
                                             } />
                                         ))}
                                     </Bar>
@@ -329,6 +331,8 @@ const StudentResults: React.FC<StudentResultsProps> = ({ username }) => {
                         <option value="OSN IPA">🧬 OSN IPA</option>
                         <option value="OSN IPS">🌍 OSN IPS</option>
                         <option value="OSN Matematika">📐 OSN Matematika</option>
+                        <option value="Literasi">📚 Literasi</option>
+                        <option value="Numerasi">🔢 Numerasi</option>
                     </select>
 
                     <select 
@@ -359,13 +363,21 @@ const StudentResults: React.FC<StudentResultsProps> = ({ username }) => {
 
                         return (
                         <div key={res.id} className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100 flex flex-col hover:shadow-xl transition-shadow">
-                            <div className={`h-2 w-full ${res.category === 'OSN IPS' ? 'bg-orange-500' : res.category === 'OSN IPA' ? 'bg-green-600' : 'bg-blue-600'}`}></div>
+                            <div className={`h-2 w-full ${
+                                res.category === 'OSN IPS' ? 'bg-orange-500' : 
+                                res.category === 'OSN IPA' ? 'bg-green-600' : 
+                                res.category === 'OSN Matematika' ? 'bg-blue-600' :
+                                res.category === 'Literasi' ? 'bg-purple-600' :
+                                'bg-teal-600' // Numerasi
+                            }`}></div>
                             <div className="p-6 flex-1 flex flex-col">
                                 <div className="flex justify-between items-start mb-4">
                                     <span className={`px-2 py-1 text-[10px] font-bold uppercase rounded border ${
                                         res.category === 'OSN IPS' ? 'bg-orange-100 text-orange-700 border-orange-200' : 
                                         res.category === 'OSN IPA' ? 'bg-green-100 text-green-700 border-green-200' :
-                                        'bg-blue-100 text-blue-700 border-blue-200'
+                                        res.category === 'OSN Matematika' ? 'bg-blue-100 text-blue-700 border-blue-200' :
+                                        res.category === 'Literasi' ? 'bg-purple-100 text-purple-700 border-purple-200' :
+                                        'bg-teal-100 text-teal-700 border-teal-200'
                                     }`}>
                                         {res.category}
                                     </span>

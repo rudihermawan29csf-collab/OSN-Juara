@@ -19,7 +19,9 @@ const ExamSchedule: React.FC<ExamScheduleProps> = ({ userRole, username }) => {
   const teacherCategory = userRole === UserRole.TEACHER 
     ? (username.includes('OSN IPA') ? 'OSN IPA' : 
        username.includes('OSN IPS') ? 'OSN IPS' : 
-       username.includes('OSN Matematika') ? 'OSN Matematika' : null)
+       username.includes('OSN Matematika') ? 'OSN Matematika' :
+       username.includes('Literasi') ? 'Literasi' :
+       username.includes('Numerasi') ? 'Numerasi' : null)
     : null;
 
   useEffect(() => {
@@ -126,7 +128,13 @@ const ExamSchedule: React.FC<ExamScheduleProps> = ({ userRole, username }) => {
         <div>
             <h2 className="text-2xl font-bold text-gray-800">Jadwal Ujian</h2>
             <p className="text-sm text-gray-500">Atur jadwal dan urutan ujian siswa</p>
-            {teacherCategory && <span className={`text-xs font-bold px-2 py-1 rounded text-white ${teacherCategory === 'OSN IPS' ? 'bg-orange-500' : teacherCategory === 'OSN IPA' ? 'bg-green-600' : 'bg-blue-600'}`}>Mode Guru: {teacherCategory}</span>}
+            {teacherCategory && <span className={`text-xs font-bold px-2 py-1 rounded text-white ${
+                teacherCategory === 'OSN IPS' ? 'bg-orange-500' : 
+                teacherCategory === 'OSN IPA' ? 'bg-green-600' : 
+                teacherCategory === 'OSN Matematika' ? 'bg-blue-600' :
+                teacherCategory === 'Literasi' ? 'bg-purple-600' :
+                'bg-teal-600'
+            }`}>Mode Guru: {teacherCategory}</span>}
         </div>
         <button 
           onClick={() => { setNewExam({ order: exams.length + 1, minScore: 70 }); setSelectedClasses([]); setShowModal(true); }}
@@ -214,6 +222,8 @@ const ExamSchedule: React.FC<ExamScheduleProps> = ({ userRole, username }) => {
                     <option value="OSN IPA">OSN IPA</option>
                     <option value="OSN IPS">OSN IPS</option>
                     <option value="OSN Matematika">OSN Matematika</option>
+                    <option value="Literasi">Literasi</option>
+                    <option value="Numerasi">Numerasi</option>
                   </select>
               </div>
               

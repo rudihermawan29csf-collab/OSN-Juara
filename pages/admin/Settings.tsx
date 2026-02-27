@@ -11,7 +11,9 @@ const Settings: React.FC = () => {
     adminPassword: '',
     teacherIpaPassword: '',
     teacherIpsPassword: '',
-    teacherMtkPassword: ''
+    teacherMtkPassword: '',
+    teacherLiterasiPassword: '',
+    teacherNumerasiPassword: ''
   });
   
   const [saved, setSaved] = useState(false);
@@ -131,6 +133,24 @@ const Settings: React.FC = () => {
                 type="text" 
                 value={settings.teacherMtkPassword}
                 onChange={e => handleChange('teacherMtkPassword', e.target.value)}
+                className="mt-1 w-full border border-gray-300 rounded-md p-2 font-mono"
+              />
+            </div>
+             <div>
+              <label className="block text-sm font-medium text-gray-700">Password Guru Literasi</label>
+              <input 
+                type="text" 
+                value={settings.teacherLiterasiPassword}
+                onChange={e => handleChange('teacherLiterasiPassword', e.target.value)}
+                className="mt-1 w-full border border-gray-300 rounded-md p-2 font-mono"
+              />
+            </div>
+             <div>
+              <label className="block text-sm font-medium text-gray-700">Password Guru Numerasi</label>
+              <input 
+                type="text" 
+                value={settings.teacherNumerasiPassword}
+                onChange={e => handleChange('teacherNumerasiPassword', e.target.value)}
                 className="mt-1 w-full border border-gray-300 rounded-md p-2 font-mono"
               />
             </div>

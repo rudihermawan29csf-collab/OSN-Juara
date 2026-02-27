@@ -15,6 +15,7 @@ const Monitoring: React.FC<MonitoringProps> = ({ userRole, username }) => {
     const [exams, setExams] = useState<Exam[]>([]);
     const [results, setResults] = useState<Result[]>([]);
     const [filterClass, setFilterClass] = useState('All');
+    const [filterCategory, setFilterCategory] = useState('All');
     const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
 
     useEffect(() => {
@@ -28,7 +29,9 @@ const Monitoring: React.FC<MonitoringProps> = ({ userRole, username }) => {
     const teacherCategory = userRole === UserRole.TEACHER 
         ? (username.includes('OSN IPA') ? 'OSN IPA' : 
            username.includes('OSN IPS') ? 'OSN IPS' : 
-           username.includes('OSN Matematika') ? 'OSN Matematika' : null)
+           username.includes('OSN Matematika') ? 'OSN Matematika' :
+           username.includes('Literasi') ? 'Literasi' :
+           username.includes('Numerasi') ? 'Numerasi' : null)
         : null;
 
     const filteredStudents = students.filter(s => {
@@ -49,6 +52,9 @@ const Monitoring: React.FC<MonitoringProps> = ({ userRole, username }) => {
         if (teacherCategory) {
             const studentMaterials = student.readMaterials.map(id => materials.find(m => m.id === id)).filter(Boolean) as Material[];
             return studentMaterials.filter(m => m.category === teacherCategory).length;
+        } else if (filterCategory !== 'All') {
+            const studentMaterials = student.readMaterials.map(id => materials.find(m => m.id === id)).filter(Boolean) as Material[];
+            return studentMaterials.filter(m => m.category === filterCategory).length;
         }
         return student.readMaterials.length;
     };
@@ -56,6 +62,8 @@ const Monitoring: React.FC<MonitoringProps> = ({ userRole, username }) => {
     const getTotalMaterialsCount = () => {
         if (teacherCategory) {
             return materials.filter(m => m.category === teacherCategory).length;
+        } else if (filterCategory !== 'All') {
+            return materials.filter(m => m.category === filterCategory).length;
         }
         return materials.length;
     };
@@ -65,6 +73,8 @@ const Monitoring: React.FC<MonitoringProps> = ({ userRole, username }) => {
         let read = student.readMaterials.map(id => materials.find(m => m.id === id)).filter(Boolean) as Material[];
         if (teacherCategory) {
             read = read.filter(m => m.category === teacherCategory);
+        } else if (filterCategory !== 'All') {
+            read = read.filter(m => m.category === filterCategory);
         }
         return read;
     };
@@ -75,6 +85,8 @@ const Monitoring: React.FC<MonitoringProps> = ({ userRole, username }) => {
         let relevantExams = exams;
         if (teacherCategory) {
             relevantExams = exams.filter(e => e.category === teacherCategory);
+        } else if (filterCategory !== 'All') {
+            relevantExams = exams.filter(e => e.category === filterCategory);
         }
 
         // Get results for this student (match by ID first, then Name as fallback)
@@ -154,6 +166,21 @@ const Monitoring: React.FC<MonitoringProps> = ({ userRole, username }) => {
                         <option value="All">Semua Kelas</option>
                         {uniqueClasses.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
+                    
+                    {!teacherCategory && (
+                        <select 
+                            className="border p-2 rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none"
+                            value={filterCategory}
+                            onChange={e => setFilterCategory(e.target.value)}
+                        >
+                            <option value="All">Semua Kategori</option>
+                            <option value="OSN IPA">OSN IPA</option>
+                            <option value="OSN IPS">OSN IPS</option>
+                            <option value="OSN Matematika">OSN Matematika</option>
+                            <option value="Literasi">Literasi</option>
+                            <option value="Numerasi">Numerasi</option>
+                        </select>
+                    )}
                 </div>
             </div>
 

@@ -144,6 +144,8 @@ const Materials: React.FC<MaterialsProps> = ({ userRole, username }) => {
                             <option value="OSN IPA">OSN IPA</option>
                             <option value="OSN IPS">OSN IPS</option>
                             <option value="OSN Matematika">OSN Matematika</option>
+                            <option value="Literasi">Literasi</option>
+                            <option value="Numerasi">Numerasi</option>
                         </select>
                     )}
                     <button 
@@ -167,7 +169,10 @@ const Materials: React.FC<MaterialsProps> = ({ userRole, username }) => {
                             <div>
                                 <span className={`text-[10px] px-2 py-1 rounded text-white font-bold uppercase ${
                                     m.category === 'OSN IPA' ? 'bg-green-600' : 
-                                    m.category === 'OSN IPS' ? 'bg-orange-500' : 'bg-blue-600'
+                                    m.category === 'OSN IPS' ? 'bg-orange-500' : 
+                                    m.category === 'OSN Matematika' ? 'bg-blue-600' :
+                                    m.category === 'Literasi' ? 'bg-purple-600' :
+                                    'bg-teal-600'
                                 }`}>
                                     {m.category}
                                 </span>
@@ -202,7 +207,10 @@ const Materials: React.FC<MaterialsProps> = ({ userRole, username }) => {
                             <h3 className="font-bold text-xl">{previewMaterial.title}</h3>
                             <span className={`text-xs px-2 py-0.5 rounded text-white font-bold uppercase ${
                                 previewMaterial.category === 'OSN IPA' ? 'bg-green-600' : 
-                                previewMaterial.category === 'OSN IPS' ? 'bg-orange-500' : 'bg-blue-600'
+                                previewMaterial.category === 'OSN IPS' ? 'bg-orange-500' : 
+                                previewMaterial.category === 'OSN Matematika' ? 'bg-blue-600' :
+                                previewMaterial.category === 'Literasi' ? 'bg-purple-600' :
+                                'bg-teal-600'
                             }`}>
                                 {previewMaterial.category}
                             </span>
@@ -249,6 +257,8 @@ const Materials: React.FC<MaterialsProps> = ({ userRole, username }) => {
                                     <option value="OSN IPA">OSN IPA</option>
                                     <option value="OSN IPS">OSN IPS</option>
                                     <option value="OSN Matematika">OSN Matematika</option>
+                                    <option value="Literasi">Literasi</option>
+                                    <option value="Numerasi">Numerasi</option>
                                 </select>
                             </div>
                             <div>

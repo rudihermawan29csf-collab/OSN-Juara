@@ -100,12 +100,16 @@ const App: React.FC = () => {
         const ipaCount = allPackets.filter(p => p.category === 'OSN IPA').length;
         const ipsCount = allPackets.filter(p => p.category === 'OSN IPS').length;
         const mtkCount = allPackets.filter(p => p.category === 'OSN Matematika').length;
+        const litCount = allPackets.filter(p => p.category === 'Literasi').length;
+        const numCount = allPackets.filter(p => p.category === 'Numerasi').length;
 
         // Count materials by category
         const allMaterials = storage.materials.getAll();
         const matIpaCount = allMaterials.filter(m => m.category === 'OSN IPA').length;
         const matIpsCount = allMaterials.filter(m => m.category === 'OSN IPS').length;
         const matMtkCount = allMaterials.filter(m => m.category === 'OSN Matematika').length;
+        const matLitCount = allMaterials.filter(m => m.category === 'Literasi').length;
+        const matNumCount = allMaterials.filter(m => m.category === 'Numerasi').length;
 
         return (
           <div className="space-y-6 animate-fadeIn">
@@ -155,18 +159,26 @@ const App: React.FC = () => {
                     <h3 className="text-gray-500 font-bold uppercase text-xs tracking-wider">Paket Soal</h3>
                     <div className="text-2xl opacity-50">📚</div>
                 </div>
-                <div className="flex items-center gap-2 mt-4">
-                    <div className="flex-1 bg-green-100/60 p-2 rounded-xl border border-green-200/50 text-center shadow-sm">
+                <div className="flex items-center gap-2 mt-4 overflow-x-auto pb-2">
+                    <div className="flex-1 min-w-[60px] bg-green-100/60 p-2 rounded-xl border border-green-200/50 text-center shadow-sm">
                         <span className="block text-xl font-bold text-green-700">{ipaCount}</span>
                         <span className="text-[9px] text-green-900/60 uppercase font-bold tracking-wider">IPA</span>
                     </div>
-                    <div className="flex-1 bg-orange-100/60 p-2 rounded-xl border border-orange-200/50 text-center shadow-sm">
+                    <div className="flex-1 min-w-[60px] bg-orange-100/60 p-2 rounded-xl border border-orange-200/50 text-center shadow-sm">
                         <span className="block text-xl font-bold text-orange-700">{ipsCount}</span>
                         <span className="text-[9px] text-orange-900/60 uppercase font-bold tracking-wider">IPS</span>
                     </div>
-                    <div className="flex-1 bg-blue-100/60 p-2 rounded-xl border border-blue-200/50 text-center shadow-sm">
+                    <div className="flex-1 min-w-[60px] bg-blue-100/60 p-2 rounded-xl border border-blue-200/50 text-center shadow-sm">
                         <span className="block text-xl font-bold text-blue-700">{mtkCount}</span>
                         <span className="text-[9px] text-blue-900/60 uppercase font-bold tracking-wider">MTK</span>
+                    </div>
+                    <div className="flex-1 min-w-[60px] bg-purple-100/60 p-2 rounded-xl border border-purple-200/50 text-center shadow-sm">
+                        <span className="block text-xl font-bold text-purple-700">{litCount}</span>
+                        <span className="text-[9px] text-purple-900/60 uppercase font-bold tracking-wider">LIT</span>
+                    </div>
+                    <div className="flex-1 min-w-[60px] bg-teal-100/60 p-2 rounded-xl border border-teal-200/50 text-center shadow-sm">
+                        <span className="block text-xl font-bold text-teal-700">{numCount}</span>
+                        <span className="text-[9px] text-teal-900/60 uppercase font-bold tracking-wider">NUM</span>
                     </div>
                 </div>
                 </div>
@@ -177,18 +189,26 @@ const App: React.FC = () => {
                     <h3 className="text-gray-500 font-bold uppercase text-xs tracking-wider">Materi Belajar</h3>
                     <div className="text-2xl opacity-50">📖</div>
                 </div>
-                <div className="flex items-center gap-2 mt-4">
-                    <div className="flex-1 bg-green-50 p-2 rounded-xl border border-green-100 text-center shadow-sm">
+                <div className="flex items-center gap-2 mt-4 overflow-x-auto pb-2">
+                    <div className="flex-1 min-w-[60px] bg-green-50 p-2 rounded-xl border border-green-100 text-center shadow-sm">
                         <span className="block text-xl font-bold text-green-700">{matIpaCount}</span>
                         <span className="text-[9px] text-green-900/60 uppercase font-bold tracking-wider">IPA</span>
                     </div>
-                    <div className="flex-1 bg-orange-50 p-2 rounded-xl border border-orange-100 text-center shadow-sm">
+                    <div className="flex-1 min-w-[60px] bg-orange-50 p-2 rounded-xl border border-orange-100 text-center shadow-sm">
                         <span className="block text-xl font-bold text-orange-700">{matIpsCount}</span>
                         <span className="text-[9px] text-orange-900/60 uppercase font-bold tracking-wider">IPS</span>
                     </div>
-                    <div className="flex-1 bg-blue-50 p-2 rounded-xl border border-blue-100 text-center shadow-sm">
+                    <div className="flex-1 min-w-[60px] bg-blue-50 p-2 rounded-xl border border-blue-100 text-center shadow-sm">
                         <span className="block text-xl font-bold text-blue-700">{matMtkCount}</span>
                         <span className="text-[9px] text-blue-900/60 uppercase font-bold tracking-wider">MTK</span>
+                    </div>
+                    <div className="flex-1 min-w-[60px] bg-purple-50 p-2 rounded-xl border border-purple-100 text-center shadow-sm">
+                        <span className="block text-xl font-bold text-purple-700">{matLitCount}</span>
+                        <span className="text-[9px] text-purple-900/60 uppercase font-bold tracking-wider">LIT</span>
+                    </div>
+                    <div className="flex-1 min-w-[60px] bg-teal-50 p-2 rounded-xl border border-teal-100 text-center shadow-sm">
+                        <span className="block text-xl font-bold text-teal-700">{matNumCount}</span>
+                        <span className="text-[9px] text-teal-900/60 uppercase font-bold tracking-wider">NUM</span>
                     </div>
                 </div>
                 </div>

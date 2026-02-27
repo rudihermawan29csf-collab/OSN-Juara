@@ -228,6 +228,8 @@ const ExamInterface: React.FC<ExamInterfaceProps> = ({ examId, username, onFinis
         }
     });
     
+    const packet = storage.packets.getAll().find(p => p.id === exam?.packetId);
+    
     storage.results.add({
         id: Date.now().toString(),
         examId: examId,
@@ -241,7 +243,13 @@ const ExamInterface: React.FC<ExamInterfaceProps> = ({ examId, username, onFinis
         answers: JSON.stringify(finalAnswers),
         timestamp: new Date().toISOString(),
         violationCount: violationRef.current, // Use Ref to ensure latest value
-        isDisqualified: forced && violationRef.current >= 3
+        isDisqualified: forced && violationRef.current >= 3,
+        category: packet?.category || '',
+        title: exam?.title || '',
+        type: 'exam',
+        content: '',
+        embedCode: '',
+        createdAt: new Date().toISOString()
     });
     
     setIsFinished(true);

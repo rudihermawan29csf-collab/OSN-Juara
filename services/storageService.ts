@@ -7,7 +7,7 @@ const KEYS = {
   API_URL: 'cbt_api_url'
 };
 
-const DEFAULT_API_URL = 'https://script.google.com/macros/s/AKfycbyNOZD1QIaOQYmrGBIGHNeTAc4wTDHxzX77UJ2itRgirPcvOrF9EF4HY5YabolMbrj7/exec';
+const DEFAULT_API_URL = 'https://script.google.com/macros/s/AKfycby8xwmXEnF_z2SWSeZT_57wbesHFiShI1mIbdooKeD-gyKgc-e9lbJND9nfIMWfBjte/exec';
 
 const DEFAULT_SETTINGS: SchoolSettings = {
   schoolName: 'SMPN 3 Pacet',

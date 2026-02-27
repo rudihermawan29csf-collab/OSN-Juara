@@ -116,7 +116,11 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ username }) => {
                                         ? 'bg-green-100 text-green-700 border-green-200' 
                                         : item.category === 'OSN IPS' 
                                         ? 'bg-orange-100 text-orange-700 border-orange-200'
-                                        : 'bg-blue-100 text-blue-700 border-blue-200'
+                                        : item.category === 'OSN Matematika'
+                                        ? 'bg-blue-100 text-blue-700 border-blue-200'
+                                        : item.category === 'Literasi'
+                                        ? 'bg-purple-100 text-purple-700 border-purple-200'
+                                        : 'bg-teal-100 text-teal-700 border-teal-200'
                                     }`}>
                                         {item.category}
                                     </span>

@@ -176,6 +176,8 @@ const Analysis: React.FC<AnalysisProps> = ({ userRole, username }) => {
                     <option value="OSN IPA">OSN IPA</option>
                     <option value="OSN IPS">OSN IPS</option>
                     <option value="OSN Matematika">OSN Matematika</option>
+                    <option value="Literasi">Literasi</option>
+                    <option value="Numerasi">Numerasi</option>
                 </select>
              )}
              <select 

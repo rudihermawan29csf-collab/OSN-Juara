@@ -653,6 +653,8 @@ const QuestionBank: React.FC<QuestionBankProps> = ({ userRole, username }) => {
                     <option value="OSN IPA">OSN IPA</option>
                     <option value="OSN IPS">OSN IPS</option>
                     <option value="OSN Matematika">OSN Matematika</option>
+                    <option value="Literasi">Literasi</option>
+                    <option value="Numerasi">Numerasi</option>
                 </select>
             )}
           </div>
@@ -824,6 +826,8 @@ const QuestionBank: React.FC<QuestionBankProps> = ({ userRole, username }) => {
                             <option value="OSN IPA">OSN IPA</option>
                             <option value="OSN IPS">OSN IPS</option>
                             <option value="OSN Matematika">OSN Matematika</option>
+                            <option value="Literasi">Literasi</option>
+                            <option value="Numerasi">Numerasi</option>
                        </select>
                        {teacherCategory && <p className="text-[10px] text-blue-600 mt-1">* Kategori dikunci untuk akun Guru {teacherCategory}</p>}
                   </div>

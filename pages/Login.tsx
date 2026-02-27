@@ -15,7 +15,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [password, setPassword] = useState('');
 
   // State for Teacher
-  const [teacherCategory, setTeacherCategory] = useState<'OSN IPA' | 'OSN IPS' | 'OSN Matematika'>('OSN IPA');
+  const [teacherCategory, setTeacherCategory] = useState<'OSN IPA' | 'OSN IPS' | 'OSN Matematika' | 'Literasi' | 'Numerasi'>('OSN IPA');
 
   // State for Student
   const [students, setStudents] = useState<Student[]>([]);
@@ -76,6 +76,18 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             onLogin(role, 'Guru OSN Matematika');
         } else {
             alert('Password Guru OSN Matematika salah!');
+        }
+      } else if (teacherCategory === 'Literasi') {
+        if (pass === currentSettings.teacherLiterasiPassword) {
+            onLogin(role, 'Guru Literasi');
+        } else {
+            alert('Password Guru Literasi salah!');
+        }
+      } else if (teacherCategory === 'Numerasi') {
+        if (pass === currentSettings.teacherNumerasiPassword) {
+            onLogin(role, 'Guru Numerasi');
+        } else {
+            alert('Password Guru Numerasi salah!');
         }
       }
     } 
@@ -204,12 +216,14 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                              <div className="relative">
                                 <select
                                     value={teacherCategory}
-                                    onChange={(e) => setTeacherCategory(e.target.value as 'OSN IPA' | 'OSN IPS' | 'OSN Matematika')}
+                                    onChange={(e) => setTeacherCategory(e.target.value as 'OSN IPA' | 'OSN IPS' | 'OSN Matematika' | 'Literasi' | 'Numerasi')}
                                     className="w-full px-4 py-3 bg-indigo-900/30 border border-white/10 rounded-xl focus:ring-2 focus:ring-white/50 focus:bg-indigo-900/50 outline-none text-white placeholder-white/50 backdrop-blur-sm transition-all appearance-none cursor-pointer hover:bg-indigo-900/50 font-medium"
                                 >
                                     <option value="OSN IPA" className="text-gray-900 bg-white">Guru OSN IPA</option>
                                     <option value="OSN IPS" className="text-gray-900 bg-white">Guru OSN IPS</option>
                                     <option value="OSN Matematika" className="text-gray-900 bg-white">Guru OSN Matematika</option>
+                                    <option value="Literasi" className="text-gray-900 bg-white">Guru Literasi</option>
+                                    <option value="Numerasi" className="text-gray-900 bg-white">Guru Numerasi</option>
                                 </select>
                                 <div className="absolute right-4 top-3.5 pointer-events-none text-white/80">
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
