@@ -17,70 +17,76 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ username }) => {
   const [myExams, setMyExams] = useState<DashboardItem[]>([]);
   const [studentName, setStudentName] = useState('');
 
-  useEffect(() => {
-    // 1. Identify Student
-    const allStudents = storage.students.getAll();
-    const me = allStudents.find(s => s.name === username);
-    setStudentName(username);
+    useEffect(() => {
+        // Sync data to ensure we have latest exams/questions
+        storage.sync().then(() => {
+            // 1. Identify Student
+            const allStudents = storage.students.getAll();
+            const me = allStudents.find(s => s.name === username);
+            setStudentName(username);
 
-    if (me) {
-        // 2. Get Exams targeted to my class
-        const allExams = storage.exams.getAll();
-        const allPackets = storage.packets.getAll();
-        const allResults = storage.results.getAll();
-        
-        const targetedExams = allExams.filter(e => {
-            // 1. Check Class Match
-            const targetClasses = e.classTarget ? e.classTarget.split(',') : [];
-            const isClassMatch = targetClasses.includes(me.class) || e.classTarget === 'All';
+            if (me) {
+                // 2. Get Exams targeted to my class
+                const allExams = storage.exams.getAll();
+                const allPackets = storage.packets.getAll();
+                const allResults = storage.results.getAll();
+                
+                const targetedExams = allExams.filter(e => {
+                    // 1. Check Class Match (Robust with trim)
+                    const targetClasses = e.classTarget ? e.classTarget.split(',').map(c => c.trim()) : [];
+                    const isClassMatch = targetClasses.includes(me.class) || e.classTarget === 'All';
 
-            // 2. Check Category Match
-            // Fallback to packet category if exam category is missing
-            const packet = allPackets.find(p => p.id === e.packetId);
-            const examCategory = e.category || packet?.category;
+                    // 2. Check Category Match
+                    // Fallback to packet category if exam category is missing
+                    const packet = allPackets.find(p => p.id === e.packetId);
+                    const examCategory = e.category || packet?.category;
 
-            // If student has specific subjects, they should ONLY see exams for those subjects
-            // If exam has no category, we assume it's general (visible to all or subject to other rules)
-            // If student has NO subjects, they see everything (or maybe nothing? assuming everything for now)
-            const isSubjectMatch = me.osnSubjects && me.osnSubjects.length > 0
-                ? (examCategory ? me.osnSubjects.includes(examCategory) : true)
-                : true;
+                    // Logic:
+                    // If student has enrolled subjects (e.g. ['OSN IPA']):
+                    // - They can ONLY see exams with category 'OSN IPA'
+                    // - They CANNOT see 'Literasi', 'Numerasi', or 'OSN IPS'
+                    // - If exam has NO category (General), maybe they can see it? Let's assume YES for General.
+                    
+                    const isSubjectMatch = me.osnSubjects && me.osnSubjects.length > 0
+                        ? (examCategory ? me.osnSubjects.includes(examCategory) : true)
+                        : true;
 
-            return isClassMatch && isSubjectMatch;
+                    return isClassMatch && isSubjectMatch;
+                });
+
+                // 3. Map to Dashboard items with Category and Status
+                let dashboardData: DashboardItem[] = targetedExams.map(exam => {
+                    // FIX: Get all results for this exam, sort by latest timestamp
+                    const studentResults = allResults.filter(r => r.examId === exam.id && r.studentName === me.name);
+                    
+                    // Sort descending by timestamp to ensure we get the latest attempt
+                    studentResults.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+                    
+                    const result = studentResults[0]; // Take the latest result
+                    const packet = allPackets.find(p => p.id === exam.packetId);
+                    
+                    return {
+                        exam,
+                        category: packet?.category || 'Umum',
+                        isDone: !!result,
+                        score: result?.score
+                    };
+                });
+
+                // 4. FILTER: Show only Active Exams OR Completed Exams
+                // Hide inactive exams that haven't been taken
+                dashboardData = dashboardData.filter(item => item.exam.isActive || item.isDone);
+
+                // Sort: Active pending first, then Done
+                dashboardData.sort((a, b) => {
+                    if (a.isDone === b.isDone) return 0;
+                    return a.isDone ? 1 : -1;
+                });
+
+                setMyExams(dashboardData);
+            }
         });
-
-        // 3. Map to Dashboard items with Category and Status
-        let dashboardData: DashboardItem[] = targetedExams.map(exam => {
-            // FIX: Get all results for this exam, sort by latest timestamp
-            const studentResults = allResults.filter(r => r.examId === exam.id && r.studentName === me.name);
-            
-            // Sort descending by timestamp to ensure we get the latest attempt
-            studentResults.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-            
-            const result = studentResults[0]; // Take the latest result
-            const packet = allPackets.find(p => p.id === exam.packetId);
-            
-            return {
-                exam,
-                category: packet?.category || 'Umum',
-                isDone: !!result,
-                score: result?.score
-            };
-        });
-
-        // 4. FILTER: Show only Active Exams OR Completed Exams
-        // Hide inactive exams that haven't been taken
-        dashboardData = dashboardData.filter(item => item.exam.isActive || item.isDone);
-
-        // Sort: Active pending first, then Done
-        dashboardData.sort((a, b) => {
-            if (a.isDone === b.isDone) return 0;
-            return a.isDone ? 1 : -1;
-        });
-
-        setMyExams(dashboardData);
-    }
-  }, [username]);
+    }, [username]);
 
   return (
     <div className="space-y-8 animate-fadeIn">
