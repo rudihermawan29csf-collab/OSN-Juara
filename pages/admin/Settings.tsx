@@ -20,8 +20,11 @@ const Settings: React.FC = () => {
   const [apiUrl, setApiUrl] = useState('');
 
   useEffect(() => {
-    setSettings(storage.settings.get());
-    setApiUrl(storage.getApiUrl());
+    // Sync first to get latest settings ID from cloud
+    storage.sync().then(() => {
+        setSettings(storage.settings.get());
+        setApiUrl(storage.getApiUrl());
+    });
   }, []);
 
   const handleChange = (field: keyof SchoolSettings, value: string) => {

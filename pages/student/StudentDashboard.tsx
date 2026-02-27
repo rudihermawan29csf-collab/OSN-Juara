@@ -41,14 +41,33 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ username }) => {
                     const packet = allPackets.find(p => p.id === e.packetId);
                     const examCategory = e.category || packet?.category;
 
-                    // Logic:
-                    // If student has enrolled subjects (e.g. ['OSN IPA']):
-                    // - They can ONLY see exams with category 'OSN IPA'
-                    // - They CANNOT see 'Literasi', 'Numerasi', or 'OSN IPS'
-                    // - If exam has NO category (General), maybe they can see it? Let's assume YES for General.
+                    // Normalize student subjects to array of strings
+                    let studentSubjects: string[] = [];
+                    if (Array.isArray(me.osnSubjects)) {
+                        studentSubjects = me.osnSubjects;
+                    } else if (typeof me.osnSubjects === 'string') {
+                        const s = me.osnSubjects as string;
+                        if (s.startsWith('[')) {
+                            try {
+                                studentSubjects = JSON.parse(s);
+                            } catch {
+                                studentSubjects = s.split(',').map(x => x.trim());
+                            }
+                        } else {
+                            studentSubjects = s.split(',').map(x => x.trim());
+                        }
+                    }
+
+                    // Normalize for comparison
+                    const normExamCat = examCategory ? examCategory.trim() : '';
                     
-                    const isSubjectMatch = me.osnSubjects && me.osnSubjects.length > 0
-                        ? (examCategory ? me.osnSubjects.includes(examCategory) : true)
+                    // Logic:
+                    // If student has enrolled subjects:
+                    // - They can ONLY see exams that match one of their subjects
+                    // - If exam has NO category (General), they see it.
+                    
+                    const isSubjectMatch = studentSubjects.length > 0
+                        ? (normExamCat ? studentSubjects.some(s => s.trim() === normExamCat) : true)
                         : true;
 
                     return isClassMatch && isSubjectMatch;
