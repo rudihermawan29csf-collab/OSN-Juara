@@ -62,13 +62,16 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ username }) => {
                     const normExamCat = examCategory ? examCategory.trim() : '';
                     
                     // Logic:
-                    // If student has enrolled subjects:
-                    // - They can ONLY see exams that match one of their subjects
-                    // - If exam has NO category (General), they see it.
+                    // 1. General exams (No category or 'Umum') are visible to ALL students.
+                    // 2. Specialized exams (OSN IPA, Numerasi, etc.) are ONLY visible if the student has that specific subject.
                     
-                    const isSubjectMatch = studentSubjects.length > 0
-                        ? (normExamCat ? studentSubjects.some(s => s.trim() === normExamCat) : true)
-                        : true;
+                    const isGeneral = !normExamCat || normExamCat.toLowerCase() === 'umum';
+                    
+                    const isSubjectMatch = isGeneral 
+                        ? true 
+                        : (studentSubjects.length > 0 
+                            ? studentSubjects.some(s => s.trim().toLowerCase() === normExamCat.toLowerCase())
+                            : false); // If student has no subjects, they can't see specialized exams
 
                     return isClassMatch && isSubjectMatch;
                 });
