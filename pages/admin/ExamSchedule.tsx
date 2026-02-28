@@ -211,23 +211,6 @@ const ExamSchedule: React.FC<ExamScheduleProps> = ({ userRole, username }) => {
               </div>
 
               <div>
-                  <label className="text-xs font-bold text-gray-500">Kategori</label>
-                  <select 
-                    className="w-full border p-2 rounded mt-1 bg-gray-50"
-                    value={newExam.category || ''}
-                    onChange={e => setNewExam({...newExam, category: e.target.value})}
-                    disabled={!!teacherCategory}
-                  >
-                    <option value="">Pilih Kategori</option>
-                    <option value="OSN IPA">OSN IPA</option>
-                    <option value="OSN IPS">OSN IPS</option>
-                    <option value="OSN Matematika">OSN Matematika</option>
-                    <option value="Literasi">Literasi</option>
-                    <option value="Numerasi">Numerasi</option>
-                  </select>
-              </div>
-
-              <div>
                   <label className="text-xs font-bold text-gray-500 mb-2 block">Target Kelas</label>
                   <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto border p-2 rounded bg-gray-50">
                       {availableClasses.map(cls => (
@@ -262,6 +245,23 @@ const ExamSchedule: React.FC<ExamScheduleProps> = ({ userRole, username }) => {
                           Reset
                       </button>
                   </div>
+              </div>
+
+              <div>
+                  <label className="text-xs font-bold text-gray-500">Kategori</label>
+                  <select 
+                    className="w-full border p-2 rounded mt-1 bg-gray-50"
+                    value={newExam.category || ''}
+                    onChange={e => setNewExam({...newExam, category: e.target.value})}
+                    disabled={!!teacherCategory}
+                  >
+                    <option value="">Pilih Kategori</option>
+                    <option value="OSN IPA">OSN IPA</option>
+                    <option value="OSN IPS">OSN IPS</option>
+                    <option value="OSN Matematika">OSN Matematika</option>
+                    <option value="Literasi">Literasi</option>
+                    <option value="Numerasi">Numerasi</option>
+                  </select>
               </div>
               
               <div className="bg-gray-50 p-4 rounded-xl border">

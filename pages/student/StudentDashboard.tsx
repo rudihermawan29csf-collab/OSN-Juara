@@ -18,7 +18,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ username, sessionCa
   const [myExams, setMyExams] = useState<DashboardItem[]>([]);
   const [studentName, setStudentName] = useState('');
 
-    useEffect(() => {
+    const refreshData = () => {
         // Sync data to ensure we have latest exams/questions
         storage.sync().then(() => {
             // 1. Identify Student
@@ -46,20 +46,35 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ username, sessionCa
                     const normExamCat = examCategory ? examCategory.trim() : '';
                     
                     // Logic:
-                    // 1. General exams (No category or 'Umum') are visible to ALL students.
-                    // 2. Specialized exams (OSN IPA, Numerasi, etc.) are ONLY visible if the student has that specific subject.
-                    // 3. IF sessionCategory is present (user selected it at login), we STRICTLY filter by it.
+                    // 1. General exams (Must be explicitly 'Umum') are visible to ALL students.
+                    // 2. Empty category is treated as 'Umum' ONLY if the packet also has no category. 
+                    //    But to be safe, if it's empty, we might want to hide it from specialized students? 
+                    //    Let's assume empty = General for now, BUT we must be careful.
+                    //    User complaint: "Numerasi" exam visible to "OSN IPA".
+                    //    This implies the system thinks the exam is General OR the student has Numerasi.
                     
-                    const isGeneral = !normExamCat || normExamCat.toLowerCase() === 'umum';
+                    // STRICTER CHECK:
+                    // If the exam category is NOT 'Umum' and NOT empty, it is Specialized.
+                    // If it is Specialized (e.g. 'Numerasi'), it MUST match the student's subject.
+                    
+                    const isExplicitlyGeneral = normExamCat.toLowerCase() === 'umum';
+                    const isEmptyCategory = !normExamCat;
+                    
+                    // If it's empty, we treat as General. 
+                    // But if the user says it's "Numerasi", then normExamCat SHOULD be "Numerasi".
+                    // If normExamCat is "Numerasi", isExplicitlyGeneral is false. isEmptyCategory is false.
                     
                     let isSubjectMatch = false;
 
                     if (sessionCategory) {
-                        // Strict Mode: Only show exams matching the session category OR General
-                        // e.g. If I logged in as 'Numerasi', I see 'Numerasi' and 'Umum'. I DO NOT see 'OSN IPA'.
-                        isSubjectMatch = isGeneral || normExamCat.toLowerCase() === sessionCategory.toLowerCase();
+                        // Strict Mode via Login Selection
+                        if (isExplicitlyGeneral || isEmptyCategory) {
+                            isSubjectMatch = true;
+                        } else {
+                            isSubjectMatch = normExamCat.toLowerCase() === sessionCategory.toLowerCase();
+                        }
                     } else {
-                        // Fallback Mode (Old logic): Check student's enrolled subjects
+                        // Fallback Mode via Student Data
                         let studentSubjects: string[] = [];
                         if (Array.isArray(me.osnSubjects)) {
                             studentSubjects = me.osnSubjects;
@@ -72,11 +87,20 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ username, sessionCa
                             }
                         }
                         
-                        isSubjectMatch = isGeneral 
-                            ? true 
-                            : (studentSubjects.length > 0 
-                                ? studentSubjects.some(s => s.trim().toLowerCase() === normExamCat.toLowerCase())
-                                : false);
+                        if (studentSubjects.length === 0) {
+                            // Student has no specific subjects -> See everything? Or only General?
+                            // Usually "See everything" or "See General". Let's assume General + Empty.
+                            isSubjectMatch = isExplicitlyGeneral || isEmptyCategory;
+                        } else {
+                            // Student has specific subjects (e.g. OSN IPA)
+                            if (isExplicitlyGeneral || isEmptyCategory) {
+                                isSubjectMatch = true;
+                            } else {
+                                // Exam is Specialized (e.g. Numerasi)
+                                // Student must have this subject
+                                isSubjectMatch = studentSubjects.some(s => s.trim().toLowerCase() === normExamCat.toLowerCase());
+                            }
+                        }
                     }
 
                     return isClassMatch && isSubjectMatch;
@@ -114,15 +138,29 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ username, sessionCa
                 setMyExams(dashboardData);
             }
         });
-    }, [username]);
+    };
+
+    // Call on mount
+    useEffect(() => {
+        refreshData();
+    }, [username, sessionCategory]);
 
   return (
     <div className="space-y-8 animate-fadeIn">
        {/* Welcome Card - Glass Gradient */}
        <div className="bg-gradient-to-r from-blue-600/90 to-indigo-700/90 backdrop-blur-md p-8 rounded-3xl text-white shadow-2xl relative overflow-hidden border border-white/20">
-         <div className="relative z-10">
-            <h2 className="text-4xl font-extrabold mb-3 tracking-tight">Selamat Datang, {studentName}! 👋</h2>
-            <p className="opacity-90 text-blue-50 font-medium text-lg max-w-2xl">Semoga hasil ujianmu memuaskan. Tetap semangat belajar dan jaga integritas!</p>
+         <div className="relative z-10 flex justify-between items-start">
+            <div>
+                <h2 className="text-4xl font-extrabold mb-3 tracking-tight">Selamat Datang, {studentName}! 👋</h2>
+                <p className="opacity-90 text-blue-50 font-medium text-lg max-w-2xl">Semoga hasil ujianmu memuaskan. Tetap semangat belajar dan jaga integritas!</p>
+                {sessionCategory && <span className="inline-block mt-2 px-3 py-1 bg-white/20 rounded-full text-xs font-bold border border-white/30">Mode: {sessionCategory}</span>}
+            </div>
+            <button 
+                onClick={refreshData}
+                className="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg text-sm font-bold backdrop-blur-sm transition-all flex items-center gap-2 border border-white/30"
+            >
+                🔄 Refresh Data
+            </button>
          </div>
          {/* Abstract Shape */}
          <div className="absolute -right-10 -bottom-20 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>

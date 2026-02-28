@@ -17,7 +17,9 @@ const DEFAULT_SETTINGS: SchoolSettings = {
   adminPassword: 'admin',
   teacherIpaPassword: 'guru',
   teacherIpsPassword: 'guru',
-  teacherMtkPassword: 'guru'
+  teacherMtkPassword: 'guru',
+  teacherLiterasiPassword: 'guru',
+  teacherNumerasiPassword: 'guru'
 };
 
 const CACHE = {

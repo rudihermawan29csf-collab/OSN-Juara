@@ -21,7 +21,6 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [students, setStudents] = useState<Student[]>([]);
   const [classes, setClasses] = useState<string[]>([]);
   const [selectedClass, setSelectedClass] = useState('');
-  const [selectedStudentCategory, setSelectedStudentCategory] = useState<string>('');
   const [selectedStudentId, setSelectedStudentId] = useState('');
 
   useEffect(() => {
@@ -97,7 +96,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         const student = students.find(s => s.id === selectedStudentId);
         if (student) {
           // Pass the selected category (or empty if not selected, though we enforce it now)
-          onLogin(role, student.name, selectedStudentCategory);
+          onLogin(role, student.name);
         }
       } else {
         alert('Mohon pilih nama siswa.');
@@ -110,28 +109,9 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     
     return students.filter(s => {
         const isClassMatch = s.class === selectedClass;
-        
-        // Filter by Category if selected
-        let isCategoryMatch = true;
-        if (selectedStudentCategory) {
-            let subjects: string[] = [];
-            if (Array.isArray(s.osnSubjects)) {
-                subjects = s.osnSubjects;
-            } else if (typeof s.osnSubjects === 'string') {
-                const str = s.osnSubjects as string;
-                if (str.startsWith('[')) {
-                    try { subjects = JSON.parse(str); } catch { subjects = str.split(',').map(x => x.trim()); }
-                } else {
-                    subjects = str.split(',').map(x => x.trim());
-                }
-            }
-            // Check if student has this subject
-            isCategoryMatch = subjects.some(sub => sub.trim() === selectedStudentCategory);
-        }
-        
-        return isClassMatch && isCategoryMatch;
+        return isClassMatch;
     });
-  }, [students, selectedClass, selectedStudentCategory]);
+  }, [students, selectedClass]);
 
   return (
     <div 
@@ -200,32 +180,6 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                             >
                                 <option value="" className="text-gray-900 bg-white">Pilih Kelas</option>
                                 {classes.map(c => <option key={c} value={c} className="text-gray-900 bg-white">{c}</option>)}
-                            </select>
-                            <div className="absolute right-4 top-3.5 pointer-events-none text-white/80">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                                </svg>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="space-y-1 group">
-                         <label className="text-white text-[10px] font-bold ml-1 uppercase tracking-wider opacity-90">Kategori / Mapel (Opsional)</label>
-                         <div className="relative">
-                            <select
-                                value={selectedStudentCategory}
-                                onChange={(e) => {
-                                    setSelectedStudentCategory(e.target.value);
-                                    setSelectedStudentId('');
-                                }}
-                                className="w-full px-4 py-3 bg-indigo-900/30 border border-white/10 rounded-xl focus:ring-2 focus:ring-white/50 focus:bg-indigo-900/50 outline-none text-white placeholder-white/50 backdrop-blur-sm transition-all appearance-none cursor-pointer hover:bg-indigo-900/50 font-medium"
-                            >
-                                <option value="" className="text-gray-900 bg-white">Semua Kategori</option>
-                                <option value="OSN IPA" className="text-gray-900 bg-white">OSN IPA</option>
-                                <option value="OSN IPS" className="text-gray-900 bg-white">OSN IPS</option>
-                                <option value="OSN Matematika" className="text-gray-900 bg-white">OSN Matematika</option>
-                                <option value="Literasi" className="text-gray-900 bg-white">Literasi</option>
-                                <option value="Numerasi" className="text-gray-900 bg-white">Numerasi</option>
                             </select>
                             <div className="absolute right-4 top-3.5 pointer-events-none text-white/80">
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
