@@ -93,8 +93,13 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ username, sessionCa
                             isSubjectMatch = isExplicitlyGeneral || isEmptyCategory;
                         } else {
                             // Student has specific subjects (e.g. OSN IPA)
-                            if (isExplicitlyGeneral || isEmptyCategory) {
+                            if (isExplicitlyGeneral) {
                                 isSubjectMatch = true;
+                            } else if (isEmptyCategory) {
+                                // FIX: If category is empty, do NOT show to specialized students.
+                                // This prevents "Numerasi" exams (which might have empty category due to data issue)
+                                // from showing up for "OSN IPA" students.
+                                isSubjectMatch = false;
                             } else {
                                 // Exam is Specialized (e.g. Numerasi)
                                 // Student must have this subject
@@ -199,16 +204,18 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ username, sessionCa
                                     <div className="text-xs text-gray-500 mt-1 font-mono bg-gray-100/50 inline-block px-2 py-0.5 rounded">{item.exam.durationMinutes} Menit</div>
                                 </td>
                                 <td className="p-5">
-                                    <span className={`px-2 py-1 rounded-md text-xs font-bold uppercase tracking-wide border ${
+                                    <span className={`px-2 py-1 rounded text-xs font-bold uppercase tracking-wide text-white shadow-sm ${
                                         item.category === 'OSN IPA' 
-                                        ? 'bg-green-100 text-green-700 border-green-200' 
+                                        ? 'bg-green-600' 
                                         : item.category === 'OSN IPS' 
-                                        ? 'bg-orange-100 text-orange-700 border-orange-200'
+                                        ? 'bg-orange-500'
                                         : item.category === 'OSN Matematika'
-                                        ? 'bg-blue-100 text-blue-700 border-blue-200'
+                                        ? 'bg-blue-600'
                                         : item.category === 'Literasi'
-                                        ? 'bg-purple-100 text-purple-700 border-purple-200'
-                                        : 'bg-teal-100 text-teal-700 border-teal-200'
+                                        ? 'bg-purple-600'
+                                        : item.category === 'Numerasi'
+                                        ? 'bg-teal-600'
+                                        : 'bg-gray-500'
                                     }`}>
                                         {item.category}
                                     </span>

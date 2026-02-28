@@ -159,6 +159,20 @@ const ExamSchedule: React.FC<ExamScheduleProps> = ({ userRole, username }) => {
                           <span className="text-xs bg-gray-100 px-2 py-0.5 rounded text-gray-600">Min: {exam.minScore}</span>
                       </div>
                   )}
+                  {exam.category && (
+                      <div className="mt-1">
+                          <span className={`text-[10px] px-2 py-1 rounded text-white font-bold uppercase ${
+                              exam.category === 'OSN IPA' ? 'bg-green-600' : 
+                              exam.category === 'OSN IPS' ? 'bg-orange-500' : 
+                              exam.category === 'OSN Matematika' ? 'bg-blue-600' :
+                              exam.category === 'Literasi' ? 'bg-purple-600' :
+                              exam.category === 'Numerasi' ? 'bg-teal-600' :
+                              'bg-gray-500'
+                          }`}>
+                              {exam.category}
+                          </span>
+                      </div>
+                  )}
               </div>
               <div className="text-xs text-gray-500 mt-2 flex flex-wrap gap-x-4 gap-y-1">
                 <span>🗓️ Mulai: {new Date(exam.scheduledStart).toLocaleString('id-ID')}</span>
