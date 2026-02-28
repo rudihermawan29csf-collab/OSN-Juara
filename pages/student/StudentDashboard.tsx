@@ -4,6 +4,7 @@ import { Exam } from '../../types';
 
 interface StudentDashboardProps {
     username: string; // Passed from App to identify student
+    sessionCategory?: string; // Passed from Login
 }
 
 interface DashboardItem {
@@ -13,7 +14,7 @@ interface DashboardItem {
     score?: number;
 }
 
-const StudentDashboard: React.FC<StudentDashboardProps> = ({ username }) => {
+const StudentDashboard: React.FC<StudentDashboardProps> = ({ username, sessionCategory }) => {
   const [myExams, setMyExams] = useState<DashboardItem[]>([]);
   const [studentName, setStudentName] = useState('');
 
@@ -41,37 +42,42 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ username }) => {
                     const packet = allPackets.find(p => p.id === e.packetId);
                     const examCategory = e.category || packet?.category;
 
-                    // Normalize student subjects to array of strings
-                    let studentSubjects: string[] = [];
-                    if (Array.isArray(me.osnSubjects)) {
-                        studentSubjects = me.osnSubjects;
-                    } else if (typeof me.osnSubjects === 'string') {
-                        const s = me.osnSubjects as string;
-                        if (s.startsWith('[')) {
-                            try {
-                                studentSubjects = JSON.parse(s);
-                            } catch {
-                                studentSubjects = s.split(',').map(x => x.trim());
-                            }
-                        } else {
-                            studentSubjects = s.split(',').map(x => x.trim());
-                        }
-                    }
-
                     // Normalize for comparison
                     const normExamCat = examCategory ? examCategory.trim() : '';
                     
                     // Logic:
                     // 1. General exams (No category or 'Umum') are visible to ALL students.
                     // 2. Specialized exams (OSN IPA, Numerasi, etc.) are ONLY visible if the student has that specific subject.
+                    // 3. IF sessionCategory is present (user selected it at login), we STRICTLY filter by it.
                     
                     const isGeneral = !normExamCat || normExamCat.toLowerCase() === 'umum';
                     
-                    const isSubjectMatch = isGeneral 
-                        ? true 
-                        : (studentSubjects.length > 0 
-                            ? studentSubjects.some(s => s.trim().toLowerCase() === normExamCat.toLowerCase())
-                            : false); // If student has no subjects, they can't see specialized exams
+                    let isSubjectMatch = false;
+
+                    if (sessionCategory) {
+                        // Strict Mode: Only show exams matching the session category OR General
+                        // e.g. If I logged in as 'Numerasi', I see 'Numerasi' and 'Umum'. I DO NOT see 'OSN IPA'.
+                        isSubjectMatch = isGeneral || normExamCat.toLowerCase() === sessionCategory.toLowerCase();
+                    } else {
+                        // Fallback Mode (Old logic): Check student's enrolled subjects
+                        let studentSubjects: string[] = [];
+                        if (Array.isArray(me.osnSubjects)) {
+                            studentSubjects = me.osnSubjects;
+                        } else if (typeof me.osnSubjects === 'string') {
+                            const s = me.osnSubjects as string;
+                            if (s.startsWith('[')) {
+                                try { studentSubjects = JSON.parse(s); } catch { studentSubjects = s.split(',').map(x => x.trim()); }
+                            } else {
+                                studentSubjects = s.split(',').map(x => x.trim());
+                            }
+                        }
+                        
+                        isSubjectMatch = isGeneral 
+                            ? true 
+                            : (studentSubjects.length > 0 
+                                ? studentSubjects.some(s => s.trim().toLowerCase() === normExamCat.toLowerCase())
+                                : false);
+                    }
 
                     return isClassMatch && isSubjectMatch;
                 });

@@ -19,6 +19,7 @@ import ExamInterface from './pages/student/ExamInterface';
 const App: React.FC = () => {
   const [role, setRole] = useState<UserRole | null>(null);
   const [username, setUsername] = useState<string>('');
+  const [userCategory, setUserCategory] = useState<string>(''); // Store selected category for student
   const [currentPage, setCurrentPage] = useState('dashboard');
   const [activeExamId, setActiveExamId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -37,15 +38,17 @@ const App: React.FC = () => {
     initApp();
   }, []);
 
-  const handleLogin = (selectedRole: UserRole, user: string) => {
+  const handleLogin = (selectedRole: UserRole, user: string, category?: string) => {
     setRole(selectedRole);
     setUsername(user);
+    if (category) setUserCategory(category);
     setCurrentPage('dashboard');
   };
 
   const handleLogout = () => {
     setRole(null);
     setUsername('');
+    setUserCategory('');
     setActiveExamId(null);
   };
 
@@ -58,11 +61,11 @@ const App: React.FC = () => {
     if (role === UserRole.STUDENT) {
         // Student Routes
         switch(currentPage) {
-            case 'dashboard': return <StudentDashboard username={username} />;
+            case 'dashboard': return <StudentDashboard username={username} sessionCategory={userCategory} />;
             case 'exam_list': return <StudentExamList username={username} onStartExam={setActiveExamId} />;
             case 'materials': return <StudentMaterials username={username} />;
             case 'results': return <StudentResults username={username} />;
-            default: return <StudentDashboard username={username} />;
+            default: return <StudentDashboard username={username} sessionCategory={userCategory} />;
         }
     }
 
